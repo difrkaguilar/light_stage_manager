@@ -15,7 +15,12 @@ from bpy.props import StringProperty, BoolProperty
 
 from .presets_data import PRESETS, PRESETS_BY_ID
 from .scene_builder import apply_preset, remove_lsm_lights
-from .constants import LSM_PREFIX
+from .constants import (
+    LSM_PREFIX,
+    LXC_AREA_GAIN_SCALE, LXC_SPOT_GAIN_SCALE,
+    LXC_POINT_GAIN_SCALE, LXC_SUN_GAIN_SCALE,
+    KELVIN_MIN, KELVIN_LXC_MAX,
+)
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +37,30 @@ def _previews_dir() -> str:
 
 def _renderer_script() -> str:
     return os.path.join(_addon_dir(), "preview_renderer.py")
+
+
+_LXC_GAIN_SCALE = {
+    "AREA":  LXC_AREA_GAIN_SCALE,
+    "SPOT":  LXC_SPOT_GAIN_SCALE,
+    "SUN":   LXC_SUN_GAIN_SCALE,
+    "POINT": LXC_POINT_GAIN_SCALE,
+}
+
+
+def _expected_kelvin(descriptor: dict, temp_offset: float) -> int | None:
+    kelvin = descriptor.get("kelvin")
+    if kelvin is None:
+        return None
+    return int(max(KELVIN_MIN, min(KELVIN_LXC_MAX, float(kelvin) + float(temp_offset))))
+
+
+def _expected_lxc_gain(descriptor: dict, intensity_mult: float) -> float:
+    light_type    = descriptor.get("type", "AREA")
+    raw_energy    = max(0.0, float(descriptor.get("energy", 100.0)))
+    actual_energy = raw_energy * max(0.0001, float(intensity_mult))
+    gain_mult     = max(0.0001, float(descriptor.get("luxcore_gain", 1.0)))
+    gain_scale    = _LXC_GAIN_SCALE.get(light_type, LXC_AREA_GAIN_SCALE)
+    return max(0.0001, actual_energy * gain_scale * gain_mult)
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +312,114 @@ class LSM_OT_DiagnoseLights(Operator):
 
 
 # ---------------------------------------------------------------------------
+# LSM_OT_VerifyActivePreset
+# ---------------------------------------------------------------------------
+
+class LSM_OT_VerifyActivePreset(Operator):
+    """Verify current LSM lights against the active preset configuration"""
+    bl_idname = "lsm.verify_active_preset"
+    bl_label  = "Verify Active Preset (Console)"
+
+    @classmethod
+    def poll(cls, context):
+        scene = getattr(context, "scene", None)
+        if scene is None or scene.render.engine != "LUXCORE":
+            return False
+        props = getattr(scene, "lsm_props", None)
+        return bool(props and props.active_preset_id)
+
+    def execute(self, context):
+        scene = context.scene
+        props = scene.lsm_props
+        preset = PRESETS_BY_ID.get(props.active_preset_id)
+        if preset is None:
+            self.report({"ERROR"}, "LSM: Active preset not found")
+            return {"CANCELLED"}
+
+        scene_lights = {
+            obj.name: obj for obj in scene.objects
+            if obj.name.startswith(LSM_PREFIX)
+        }
+        if not scene_lights:
+            self.report({"WARNING"}, "LSM: No LSM lights in scene")
+            return {"CANCELLED"}
+
+        failures: list[str] = []
+
+        print()
+        print("=" * 72)
+        print("[LSM] VERIFICATION REPORT — Preset: %s" % preset.get("name", props.active_preset_id))
+        print("=" * 72)
+
+        for desc in preset.get("lights", []):
+            obj_name = LSM_PREFIX + desc.get("name", "Light")
+            obj = scene_lights.get(obj_name)
+            if obj is None:
+                failures.append("%s missing from scene" % obj_name)
+                print("  FAIL | %s | missing object" % obj_name)
+                continue
+
+            lx = getattr(obj.data, "luxcore", None)
+            if lx is None:
+                failures.append("%s has no light.luxcore data" % obj_name)
+                print("  FAIL | %s | light.luxcore is missing" % obj_name)
+                continue
+
+            expected_gain = _expected_lxc_gain(desc, props.intensity_multiplier)
+            actual_gain = getattr(lx, "gain", None)
+            expected_kelvin = _expected_kelvin(desc, props.temperature_offset)
+            actual_kelvin = getattr(lx, "temperature",
+                                    getattr(lx, "color_temperature", None))
+            actual_mode = getattr(lx, "color_mode", None)
+            actual_unit = getattr(lx, "light_unit", getattr(lx, "unit", None))
+
+            light_failures: list[str] = []
+            if actual_unit != "artistic":
+                light_failures.append("unit=%r expected 'artistic'" % (actual_unit,))
+
+            if actual_gain is None or abs(float(actual_gain) - expected_gain) > 1e-4:
+                light_failures.append("gain=%r expected %.4f" % (actual_gain, expected_gain))
+
+            if expected_kelvin is not None:
+                if actual_mode != "temperature":
+                    light_failures.append("color_mode=%r expected 'temperature'" % (actual_mode,))
+                if actual_kelvin is None or abs(float(actual_kelvin) - expected_kelvin) > 0.5:
+                    light_failures.append("K=%r expected %d" % (actual_kelvin, expected_kelvin))
+            elif actual_mode not in (None, "rgb", "color"):
+                light_failures.append("color_mode=%r expected RGB path" % (actual_mode,))
+
+            if light_failures:
+                failures.append("%s: %s" % (obj_name, "; ".join(light_failures)))
+                print("  FAIL | %s | %s" % (obj_name, "; ".join(light_failures)))
+            else:
+                if expected_kelvin is not None:
+                    print("  OK   | %s | gain=%.4f mode=%s K=%s" % (
+                        obj_name, float(actual_gain), actual_mode, actual_kelvin))
+                else:
+                    print("  OK   | %s | gain=%.4f mode=%s" % (
+                        obj_name, float(actual_gain), actual_mode))
+
+        extra = sorted(set(scene_lights.keys()) - {
+            LSM_PREFIX + desc.get("name", "Light") for desc in preset.get("lights", [])
+        })
+        for obj_name in extra:
+            failures.append("%s present in scene but not in active preset" % obj_name)
+            print("  WARN | %s | extra LSM light not defined by active preset" % obj_name)
+
+        print("-" * 72)
+        print("[LSM] Verification checked %d expected lights, failures=%d" % (
+            len(preset.get("lights", [])), len(failures)))
+        print("=" * 72)
+
+        if failures:
+            self.report({"WARNING"}, "LSM: Verification found %d issue(s) — see console" % len(failures))
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, "LSM: Verification passed for '%s'" % preset.get("name", props.active_preset_id))
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
 # LSM_OT_RenderPreviews
 # ---------------------------------------------------------------------------
 
@@ -473,6 +610,7 @@ OPERATORS = (
     LSM_OT_ResetModifiers,
     LSM_OT_SetCategory,
     LSM_OT_DiagnoseLights,
+    LSM_OT_VerifyActivePreset,
     LSM_OT_RenderPreviews,
 )
 

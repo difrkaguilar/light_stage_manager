@@ -382,6 +382,8 @@ class LSM_PT_SceneTools(Panel):
                 col.operator("lsm.remove_lights",  text="Remove All",
                              icon="TRASH")
                 col.separator()
+                col.operator("lsm.verify_active_preset",
+                             text="Verify Active Preset", icon="CHECKMARK")
                 col.operator("lsm.diagnose_lights",
                              text="Diagnose (Console)", icon="INFO")
             else:
