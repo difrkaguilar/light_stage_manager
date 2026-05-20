@@ -164,8 +164,24 @@ class LSM_OT_ResetModifiers(Operator):
     def execute(self, context):
         try:
             p = context.scene.lsm_props
-            p.intensity_multiplier = 1.0
+            try:
+                prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+            except Exception:
+                prefs = None
+
+            p.intensity_multiplier = (
+                float(getattr(prefs, "default_intensity", 1.0))
+                if prefs is not None else 1.0
+            )
             p.temperature_offset   = 0.0
+            p.clear_existing = (
+                bool(getattr(prefs, "default_clear_existing", True))
+                if prefs is not None else True
+            )
+            p.auto_configure_luxcore = (
+                bool(getattr(prefs, "default_auto_configure", True))
+                if prefs is not None else True
+            )
         except Exception as exc:
             self.report({"ERROR"}, "LSM: %s" % exc)
             return {"CANCELLED"}

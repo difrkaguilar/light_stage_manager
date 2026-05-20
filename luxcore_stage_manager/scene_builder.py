@@ -127,6 +127,7 @@ def create_light(descriptor:    dict,
     obj_name      = LSM_PREFIX + descriptor.get("name", "Light")
     raw_energy    = max(0.0, float(descriptor.get("energy", 100.0)))
     actual_energy = raw_energy * max(0.0001, float(intensity_mult))
+    gain_mult     = max(0.0001, float(descriptor.get("luxcore_gain", 1.0)))
     kelvin        = descriptor.get("kelvin")
     color_rgb     = descriptor.get("color")
 
@@ -196,7 +197,7 @@ def create_light(descriptor:    dict,
     # =========================================================================
     if engine == "LUXCORE":
         gain_scale = _GAIN_SCALE.get(light_type, LXC_AREA_GAIN_SCALE)
-        lxc_gain   = max(0.0001, actual_energy * gain_scale)
+        lxc_gain   = max(0.0001, actual_energy * gain_scale * gain_mult)
         kelvin_int = int(adjusted_k) if adjusted_k is not None else None
 
         apply_lxc_light_props(

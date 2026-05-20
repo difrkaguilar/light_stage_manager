@@ -40,6 +40,18 @@ def _repopulate_items(props):
         item.name      = p["name"]
         item.preset_id = p["id"]
 
+
+def _apply_preference_defaults(props) -> None:
+    """Populate scene properties from addon preferences when available."""
+    try:
+        prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+    except Exception:
+        return
+
+    props.intensity_multiplier   = float(getattr(prefs, "default_intensity", 1.0))
+    props.clear_existing         = bool(getattr(prefs, "default_clear_existing", True))
+    props.auto_configure_luxcore = bool(getattr(prefs, "default_auto_configure", True))
+
 # ---------------------------------------------------------------------------
 # Update callbacks
 # ---------------------------------------------------------------------------
@@ -138,6 +150,12 @@ class LSM_UL_PresetList(UIList):
 
 def _draw_engine_indicator(layout, context):
     engine = context.scene.render.engine
+    prefs = None
+    try:
+        prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+    except Exception:
+        pass
+
     if engine == LUXCORE_ENGINE_ID:
         row = layout.row(align=True)
         row.label(text="Engine: LuxCore", icon="SHADING_RENDERED")
@@ -151,6 +169,15 @@ def _draw_engine_indicator(layout, context):
         box = layout.box()
         box.label(text="Engine: " + engine, icon="ERROR")
         box.label(text="Use LuxCore or Cycles for best results.")
+
+    if (
+        prefs is not None and
+        getattr(prefs, "show_luxcore_warning", True) and
+        engine != LUXCORE_ENGINE_ID
+    ):
+        box = layout.box()
+        box.label(text="LuxCore is not the active render engine.", icon="INFO")
+        box.label(text="Presets still work, but LuxCore-only settings are skipped.")
     layout.separator(factor=0.3)
 
 # ---------------------------------------------------------------------------
@@ -452,6 +479,7 @@ def _on_load_post(filepath=""):
     try:
         for scene in bpy.data.scenes:
             if hasattr(scene, "lsm_props"):
+                _apply_preference_defaults(scene.lsm_props)
                 _repopulate_items(scene.lsm_props)
     except Exception as exc:
         log.warning("LSM load_post: %s", exc)
@@ -462,6 +490,7 @@ def _deferred_init():
     try:
         for scene in bpy.data.scenes:
             if hasattr(scene, "lsm_props"):
+                _apply_preference_defaults(scene.lsm_props)
                 _repopulate_items(scene.lsm_props)
     except Exception as exc:
         log.warning("LSM deferred_init (scenes): %s", exc)
