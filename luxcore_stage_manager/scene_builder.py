@@ -35,6 +35,7 @@ from .lxc_compat import (
 from .cycles_compat import (
     apply_cycles_light_props,
     apply_cycles_sky,
+    reset_cycles_world,
     CyclesSceneProxy,
     is_cycles_like,
 )
@@ -352,6 +353,8 @@ def apply_preset(preset:           dict,
         elif engine == "CYCLES":
             if env_cfg:
                 apply_cycles_sky(scene, env_cfg)
+            else:
+                reset_cycles_world(scene)
             if lxc_cfg:
                 sp = CyclesSceneProxy(scene)
                 sp.apply_from_lxc_cfg(lxc_cfg)

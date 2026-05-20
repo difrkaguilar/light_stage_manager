@@ -111,6 +111,39 @@ def apply_cycles_area_spread(light_data, spread_radians: float = math.pi) -> Non
 # Cycles world / sky (for architecture presets with env_light)
 # ---------------------------------------------------------------------------
 
+def reset_cycles_world(scene,
+                       color=(0.05, 0.05, 0.05),
+                       strength: float = 0.0) -> None:
+    """Restore a neutral Cycles world for presets without env_light.
+
+    This prevents architecture/creative environment settings from leaking into
+    portrait/product presets that are meant to rely on their light rig alone.
+    """
+    import bpy
+
+    world = scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        scene.world = world
+
+    world.use_nodes = True
+    node_tree = world.node_tree
+    if node_tree is None:
+        return
+
+    node_tree.nodes.clear()
+
+    try:
+        bg_node  = node_tree.nodes.new("ShaderNodeBackground")
+        out_node = node_tree.nodes.new("ShaderNodeOutputWorld")
+
+        bg_node.inputs["Color"].default_value    = (*[float(c) for c in color], 1.0)
+        bg_node.inputs["Strength"].default_value = float(strength)
+        node_tree.links.new(bg_node.outputs["Background"], out_node.inputs["Surface"])
+    except Exception as exc:
+        log.warning("[LSM-CYC] Could not reset neutral world: %s", exc)
+
+
 def apply_cycles_sky(scene, env_cfg: dict) -> None:
     """Configure the Cycles sky/world when env_light is defined in a preset.
 
