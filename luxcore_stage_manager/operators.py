@@ -249,7 +249,8 @@ class LSM_OT_DiagnoseLights(Operator):
             if lx_ld is not None:
                 gain   = getattr(lx_ld, "gain",              "N/A")
                 cmode  = getattr(lx_ld, "color_mode",        "N/A")
-                ktemp  = getattr(lx_ld, "color_temperature", "N/A")
+                ktemp  = getattr(lx_ld, "temperature",
+                                 getattr(lx_ld, "color_temperature", "N/A"))
                 unit   = getattr(lx_ld, "light_unit",        "N/A")
                 uctmp  = getattr(lx_ld, "use_color_temperature", "N/A")
                 print("    LuxCore | gain=%-8s  unit=%-10s  color_mode=%-12s  K=%s  use_K=%s" % (

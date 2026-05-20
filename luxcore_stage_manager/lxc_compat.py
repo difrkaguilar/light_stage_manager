@@ -86,7 +86,7 @@ def apply_lxc_light_props(light_data,
         light.luxcore.light_unit        EnumProperty: "artistic"|"power"|"flux"|"candela"
         light.luxcore.gain              FloatProperty
         light.luxcore.color_mode        EnumProperty: "color"|"temperature"
-        light.luxcore.color_temperature IntProperty (1000-12000)
+        light.luxcore.temperature       FloatProperty (Kelvin, UI/export path)
     """
     lx = getattr(light_data, "luxcore", None)
     if lx is None:
@@ -114,23 +114,30 @@ def apply_lxc_light_props(light_data,
 
         # BLC 2.10: color_mode enum ("color" | "temperature")
         ok_mode = _try_set(lx, "color_mode", "temperature")
-        ok_temp = _try_set(lx, "color_temperature", k)
+        ok_temp = _try_set(lx, "temperature", float(k))
+
+        # Compatibility aliases seen across older addon generations.
+        # Keep these in sync when present so UI, export, and diagnostics agree.
+        _try_set(lx, "color_temperature", k)
+        _try_set(lx, "use_color_temperature", True)
 
         # BLC < 2.9 fallback: use_color_temperature (bool)
         if not ok_mode:
             _try_set(lx, "use_color_temperature", True)
         if not ok_temp:
-            _try_set(lx, "color_temperature", float(k))
+            _try_set(lx, "temperature", float(k))
 
         # Verify
         actual_mode = _try_get(lx, "color_mode", "?")
-        actual_k    = _try_get(lx, "color_temperature", "?")
+        actual_k    = _try_get(lx, "temperature", _try_get(lx, "color_temperature", "?"))
         print("[LSM]   color_mode=%r K=%s -> mode=%r K_actual=%s" % (
             "temperature", k, actual_mode, actual_k))
     else:
         # RGB color mode
         ok = _try_set(lx, "color_mode", "color")
         if not ok:
+            _try_set(lx, "use_color_temperature", False)
+        else:
             _try_set(lx, "use_color_temperature", False)
         print("[LSM]   color_mode=color (RGB)")
 
