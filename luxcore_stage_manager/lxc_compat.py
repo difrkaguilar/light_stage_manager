@@ -93,6 +93,10 @@ def apply_lxc_light_props(light_data,
         print("[LSM] WARNING: light.luxcore is None for %r — BlendLuxCore not active?" % light_data.name)
         return
 
+    # Force LuxCore-native settings path so BlendLuxCore does not fall back to
+    # its Cycles compatibility mode for newly created lights.
+    _try_set(lx, "use_cycles_settings", False)
+
     # ---- 1. Unit: artistic (gain-based) ------------------------------------
     if _try_set(lx, "light_unit", light_unit):
         pass  # ok
@@ -112,9 +116,11 @@ def apply_lxc_light_props(light_data,
         from .constants import KELVIN_MIN, KELVIN_LXC_MAX
         k = int(max(KELVIN_MIN, min(KELVIN_LXC_MAX, float(kelvin))))
 
-        # BLC 2.10: color_mode enum ("color" | "temperature")
-        ok_mode = _try_set(lx, "color_mode", "temperature")
+        # Start by clearing any RGB tint and writing the Kelvin value, then
+        # re-apply mode and temperature again after compatibility aliases.
+        _try_set(lx, "rgb_gain", (1.0, 1.0, 1.0))
         ok_temp = _try_set(lx, "temperature", float(k))
+        ok_mode = _try_set(lx, "color_mode", "temperature")
 
         # Compatibility aliases seen across older addon generations.
         # Keep these in sync when present so UI, export, and diagnostics agree.
@@ -127,19 +133,27 @@ def apply_lxc_light_props(light_data,
         if not ok_temp:
             _try_set(lx, "temperature", float(k))
 
+        # Re-assert the modern values last in case any alias write or internal
+        # update callback reset them to defaults.
+        _try_set(lx, "color_mode", "temperature")
+        _try_set(lx, "temperature", float(k))
+
         # Verify
         actual_mode = _try_get(lx, "color_mode", "?")
         actual_k    = _try_get(lx, "temperature", _try_get(lx, "color_temperature", "?"))
-        print("[LSM]   color_mode=%r K=%s -> mode=%r K_actual=%s" % (
-            "temperature", k, actual_mode, actual_k))
+        print("[LSM]   color_mode=%r K=%s -> mode=%r K_actual=%s use_cycles=%s" % (
+            "temperature", k, actual_mode, actual_k,
+            _try_get(lx, "use_cycles_settings", "N/A")))
     else:
         # RGB color mode
+        _try_set(lx, "rgb_gain", tuple(float(c) for c in light_data.color[:3]))
         ok = _try_set(lx, "color_mode", "color")
         if not ok:
             _try_set(lx, "use_color_temperature", False)
         else:
             _try_set(lx, "use_color_temperature", False)
-        print("[LSM]   color_mode=color (RGB)")
+        print("[LSM]   color_mode=color (RGB) use_cycles=%s" % (
+            _try_get(lx, "use_cycles_settings", "N/A")))
 
 
 def apply_lxc_object_visibility(obj, visible_to_camera: bool = False) -> None:

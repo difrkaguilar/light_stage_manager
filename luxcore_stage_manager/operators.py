@@ -372,8 +372,11 @@ class LSM_OT_VerifyActivePreset(Operator):
                                     getattr(lx, "color_temperature", None))
             actual_mode = getattr(lx, "color_mode", None)
             actual_unit = getattr(lx, "light_unit", getattr(lx, "unit", None))
+            use_cycles_settings = getattr(lx, "use_cycles_settings", None)
 
             light_failures: list[str] = []
+            if use_cycles_settings:
+                light_failures.append("use_cycles_settings=%r expected False" % (use_cycles_settings,))
             if actual_unit != "artistic":
                 light_failures.append("unit=%r expected 'artistic'" % (actual_unit,))
 
