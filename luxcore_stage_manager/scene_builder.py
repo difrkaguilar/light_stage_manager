@@ -230,6 +230,30 @@ def create_light(descriptor:    dict,
 # Scene management
 # ---------------------------------------------------------------------------
 
+def _remove_empty_lsm_collections(scene) -> None:
+    """Remove empty LSM collections left behind after deleting generated lights."""
+    parent_links = [scene.collection]
+    parent_links.extend(bpy.data.collections)
+
+    for col in list(bpy.data.collections):
+        if not col.name.startswith(LSM_COLLECTION_PREFIX):
+            continue
+        if col.objects or col.children:
+            continue
+
+        for parent in parent_links:
+            try:
+                if col.name in parent.children:
+                    parent.children.unlink(col)
+            except Exception:
+                continue
+
+        try:
+            bpy.data.collections.remove(col)
+        except Exception as exc:
+            log.warning("[LSM] Could not remove empty collection %r: %s", col.name, exc)
+
+
 def remove_lsm_lights(scene) -> int:
     to_delete = [o for o in scene.objects if o.name.startswith(LSM_PREFIX)]
     for obj in to_delete:
@@ -239,6 +263,7 @@ def remove_lsm_lights(scene) -> int:
             bpy.data.objects.remove(obj, do_unlink=True)
         except Exception as exc:
             log.warning("[LSM] Could not remove %r: %s", obj.name, exc)
+    _remove_empty_lsm_collections(scene)
     return len(to_delete)
 
 

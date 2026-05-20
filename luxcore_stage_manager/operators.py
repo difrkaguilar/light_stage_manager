@@ -33,10 +33,6 @@ def _previews_dir() -> str:
 def _renderer_script() -> str:
     return os.path.join(_addon_dir(), "preview_renderer.py")
 
-def _blender_executable() -> str:
-    return sys.executable   # bpy.app.binary_path would be ideal but may not exist
-                            # sys.executable inside Blender IS the blender binary
-
 
 # ---------------------------------------------------------------------------
 # LSM_OT_ApplyPreset
@@ -113,10 +109,12 @@ class LSM_OT_SelectLSMLights(Operator):
     def execute(self, context):
         try:
             bpy.ops.object.select_all(action="DESELECT")
-            n = sum(1 for o in context.scene.objects
-                    if o.name.startswith(LSM_PREFIX) and not o.select_set(True))
-            # select_set returns None, so count differently
-            n = sum(1 for o in context.scene.objects if o.name.startswith(LSM_PREFIX))
+            n = 0
+            for obj in context.scene.objects:
+                if not obj.name.startswith(LSM_PREFIX):
+                    continue
+                obj.select_set(True)
+                n += 1
         except Exception as exc:
             self.report({"ERROR"}, "LSM: %s" % exc)
             return {"CANCELLED"}

@@ -408,7 +408,7 @@ class LSM_PT_Previews(Panel):
 
     def _draw_safe(self, context):
         import os
-        from .previews import _previews_dir, rendering_complete, all_pngs_exist
+        from .previews import _previews_dir
         layout = self.layout
         pdir   = _previews_dir()
 
