@@ -25,7 +25,7 @@ CYCLES_LIKE_ENGINES = frozenset({
 
 # Valid values
 VALID_LIGHT_TYPES  = frozenset({"AREA", "SPOT", "SUN", "POINT"})
-VALID_CATEGORIES   = frozenset({"PORTRAIT", "PRODUCT", "ARCHITECTURE", "CREATIVE"})
+VALID_CATEGORIES   = frozenset({"PORTRAIT", "PRODUCT", "ARCHITECTURE", "CREATIVE", "CINEMATIC"})
 VALID_AREA_SHAPES  = frozenset({"SQUARE", "RECTANGLE", "DISK", "ELLIPSE"})
 VALID_LXC_ENGINES  = frozenset({"PATH", "BIDIR"})
 VALID_ENV_TYPES    = frozenset({"sky2", "constant"})

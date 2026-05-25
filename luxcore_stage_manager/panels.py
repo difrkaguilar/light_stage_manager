@@ -23,6 +23,7 @@ CAT_ICONS = {
     "PRODUCT":      "CUBE",
     "ARCHITECTURE": "HOME",
     "CREATIVE":     "SHADERFX",
+    "CINEMATIC":    "SEQUENCE",
 }
 
 # ---------------------------------------------------------------------------
@@ -80,11 +81,12 @@ class LSM_SceneProperties(PropertyGroup):
     active_category: EnumProperty(
         name="Category",
         items=[
-            ("ALL",          "All",           "Show all presets",             "LIGHTPROBE_VOLUME", 0),
-            ("PORTRAIT",     "Portrait",      "Portrait lighting setups",     "OUTLINER_OB_LIGHT", 1),
-            ("PRODUCT",      "Product",       "Product photography setups",   "CUBE",              2),
-            ("ARCHITECTURE", "Architecture",  "Architectural visualization",  "HOME",              3),
-            ("CREATIVE",     "Creative",      "Creative and artistic setups", "SHADERFX",          4),
+            ("ALL",          "All",           "Show all presets",                                  "LIGHTPROBE_VOLUME", 0),
+            ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                          "OUTLINER_OB_LIGHT", 1),
+            ("PRODUCT",      "Product",       "Product photography setups",                        "CUBE",              2),
+            ("ARCHITECTURE", "Architecture",  "Architectural visualization",                       "HOME",              3),
+            ("CREATIVE",     "Creative",      "Creative and artistic setups",                      "SHADERFX",          4),
+            ("CINEMATIC",    "Cinematic",     "Film-inspired setups referencing real productions", "SEQUENCE",          5),
         ],
         default="ALL",
         update=_cb_category_changed,

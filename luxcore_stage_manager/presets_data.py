@@ -1515,6 +1515,338 @@ PRESETS = [
         "env_light": {"type": "constant", "gain": 0.0002, "color": (0.03, 0.015, 0.005)},
         "luxcore_cfg": {"engine": "BIDIR", "path_depth": 10, "halt_samples": 600, "denoiser": True},
     },
+
+    # =========================================================================
+    # PRODUCT — automotive
+    # =========================================================================
+
+    {
+        "id": "automotive_studio",
+        "name": "Automotive Studio Rig",
+        "category": "PRODUCT",
+        "description": (
+            "Professional car photography rig. "
+            "Matched vertical strip lights reveal bodywork curvature. "
+            "Overhead panel + front key + ground fill simulate white cyclorama."
+        ),
+        "lights": [
+            # Long vertical strip: specular streak along driver's side
+            {
+                "name": "Strip_Left",
+                "type": "AREA",
+                "location": (-4.5, 0.0, 1.5),
+                "target": (0.0, 0.0, 0.8),
+                "energy": 600.0,
+                "kelvin": 5500,
+                "size": 0.25,
+                "size_y": 5.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Long vertical strip: specular streak along passenger side
+            {
+                "name": "Strip_Right",
+                "type": "AREA",
+                "location": (4.5, 0.0, 1.5),
+                "target": (0.0, 0.0, 0.8),
+                "energy": 600.0,
+                "kelvin": 5500,
+                "size": 0.25,
+                "size_y": 5.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Overhead softbox: top-plane fill, hood/roof gradients
+            {
+                "name": "Overhead_Panel",
+                "type": "AREA",
+                "location": (0.0, -1.0, 5.5),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 350.0,
+                "kelvin": 5800,
+                "size": 4.0,
+                "size_y": 3.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Front key: grille, headlights, front fascia
+            {
+                "name": "Front_Key",
+                "type": "AREA",
+                "location": (0.0, -5.0, 2.0),
+                "target": (0.0, 0.0, 0.5),
+                "energy": 200.0,
+                "kelvin": 5600,
+                "size": 3.0,
+                "size_y": 2.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Ground fill: cyclorama floor bounce, undercar detail
+            {
+                "name": "Ground_Fill",
+                "type": "AREA",
+                "location": (0.0, 0.0, -1.5),
+                "target": (0.0, 0.0, 1.0),
+                "energy": 80.0,
+                "kelvin": 5500,
+                "size": 6.0,
+                "size_y": 6.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        # White cyclorama ambient: fills crevices, keeps specular clean
+        "env_light": {"type": "constant", "gain": 0.003, "color": (1.0, 1.0, 1.0)},
+        "luxcore_cfg": {"engine": "PATH", "path_depth": 12, "halt_samples": 600, "denoiser": True},
+    },
+
+    # =========================================================================
+    # CINEMATIC
+    # =========================================================================
+
+    {
+        "id": "cin_deakins_window",
+        "name": "Deakins — Window Natural",
+        "category": "CINEMATIC",
+        "description": (
+            "Roger Deakins interior style. "
+            "Motivated single window key, very large and soft. "
+            "Sky bounce fill, subtle rear rim. Naturalistic, no obvious rig."
+        ),
+        "lights": [
+            # Large window substitute: the sole motivated source
+            {
+                "name": "Window_Key",
+                "type": "AREA",
+                "location": (-3.5, -1.0, 1.8),
+                "target": (0.0, 0.0, 0.9),
+                "energy": 280.0,
+                "kelvin": 5200,
+                "size": 2.8,
+                "size_y": 2.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Ceiling sky bounce: indirect fill from opposite side, very low ratio
+            {
+                "name": "Sky_Bounce",
+                "type": "AREA",
+                "location": (0.0, 0.0, 4.5),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 35.0,
+                "kelvin": 7500,
+                "size": 5.0,
+                "size_y": 5.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+            # Rear soft rim: separates subject from background, barely readable
+            {
+                "name": "Rim_Soft",
+                "type": "AREA",
+                "location": (1.5, 3.0, 2.0),
+                "target": (0.0, 0.0, 1.0),
+                "energy": 60.0,
+                "kelvin": 5800,
+                "size": 1.2,
+                "size_y": 2.5,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "sky2", "turbidity": 3.5, "gain": 0.008},
+        # BIDIR: essential for correct interior fill from a single window source
+        "luxcore_cfg": {"engine": "BIDIR", "path_depth": 12, "halt_samples": 800, "denoiser": True},
+    },
+
+    {
+        "id": "cin_wkw_amber_night",
+        "name": "Wong Kar-wai — Amber Night",
+        "category": "CINEMATIC",
+        "description": (
+            "Wong Kar-wai / Christopher Doyle palette. "
+            "Warm practical as dominant source, neon accent, "
+            "saturated coloured bounce. High emotional contrast."
+        ),
+        "lights": [
+            # Practical lamp: the only 'real' light source in the space
+            # cycles_energy is higher because luxcore_gain has no Cycles equivalent
+            {
+                "name": "Practical_Main",
+                "type": "POINT",
+                "location": (0.8, -0.5, 0.9),
+                "target": None,
+                "energy": 25.0,           # LuxCore: 25 × 0.10 × 10.0 = 25.0 gain
+                "cycles_energy": 180.0,   # Cycles: direct Watts, no gain system
+                "kelvin": None,
+                "color": (1.0, 0.38, 0.08),   # amber profundo
+                "size": 0.05,
+                "use_shadow": True,
+                "luxcore_gain": 10.0,
+            },
+            # Neon strip behind subject: green-cyan, typical of WKW Hong Kong streets
+            {
+                "name": "Neon_Back",
+                "type": "AREA",
+                "location": (0.0, 3.5, 1.2),
+                "target": (0.0, 0.0, 0.9),
+                "energy": 90.0,
+                "kelvin": None,
+                "color": (0.1, 0.80, 0.55),   # verde-cyan neón
+                "size": 0.15,
+                "size_y": 1.8,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Saturated wall bounce: deep red, as if reflecting off a red-painted wall
+            {
+                "name": "Wall_Bounce",
+                "type": "AREA",
+                "location": (-2.5, 0.5, 1.5),
+                "target": (0.0, 0.0, 0.8),
+                "energy": 45.0,
+                "kelvin": None,
+                "color": (0.9, 0.25, 0.15),   # rojo sangre
+                "size": 2.0,
+                "size_y": 2.5,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        # Deep night ambient: barely perceptible warm-black
+        "env_light": {"type": "constant", "gain": 0.0003, "color": (0.08, 0.04, 0.02)},
+        # BIDIR: POINT practicals in dark scenes cause fireflies in PATH
+        "luxcore_cfg": {"engine": "BIDIR", "path_depth": 12, "halt_samples": 700, "denoiser": True},
+    },
+
+    {
+        "id": "cin_br2049",
+        "name": "Blade Runner 2049",
+        "category": "CINEMATIC",
+        "description": (
+            "Deakins / BR2049 palette. "
+            "Cold blue ambient from above, high-energy orange neon accent, "
+            "electric blue rim. Near-zero fill ratio. Extreme colour contrast."
+        ),
+        "lights": [
+            # Overcast dystopian sky: cold blue, diffuse, dominant ambient
+            {
+                "name": "Sky_Cold",
+                "type": "AREA",
+                "location": (0.0, 0.0, 5.0),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 80.0,
+                "kelvin": None,
+                "color": (0.08, 0.18, 0.55),   # azul oscuro
+                "size": 6.0,
+                "size_y": 6.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+            # Orange neon: the signature warm accent, punchy and narrow
+            {
+                "name": "Neon_Orange",
+                "type": "AREA",
+                "location": (3.0, 1.5, 0.8),
+                "target": (0.0, 0.0, 0.5),
+                "energy": 320.0,
+                "kelvin": None,
+                "color": (1.0, 0.30, 0.04),   # naranja neón
+                "size": 0.2,
+                "size_y": 2.5,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.5,
+            },
+            # Electric blue rim: hard separation, reinforces the cold atmosphere
+            {
+                "name": "Rim_Electric",
+                "type": "AREA",
+                "location": (-1.0, 3.0, 2.5),
+                "target": (0.0, 0.0, 1.2),
+                "energy": 200.0,
+                "kelvin": None,
+                "color": (0.15, 0.45, 1.0),   # azul eléctrico
+                "size": 0.4,
+                "size_y": 2.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        # Near-black blue: the void between neon sources
+        "env_light": {"type": "constant", "gain": 0.0002, "color": (0.04, 0.08, 0.20)},
+        "luxcore_cfg": {"engine": "PATH", "path_depth": 10, "halt_samples": 500, "denoiser": True},
+    },
+
+    {
+        "id": "cin_a24_golden",
+        "name": "A24 — Golden Naturalism",
+        "category": "CINEMATIC",
+        "description": (
+            "A24 available-light philosophy. "
+            "Low warm sun as sole motivated key, cool sky fill as contrast, "
+            "ground bounce for underside warmth. "
+            "No obvious rig. Relies on global illumination for cohesion."
+        ),
+        "lights": [
+            # Late afternoon sun: low angle, very warm, single motivated source
+            {
+                "name": "Sun_Late",
+                "type": "SUN",
+                "location": (6.0, -2.0, 1.8),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 3.2,
+                "kelvin": 3200,   # deepest golden-hour warmth
+                "size": 0.08,
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Open sky fill: large, cool, low energy — the natural counter-key
+            {
+                "name": "Sky_Soft",
+                "type": "AREA",
+                "location": (0.0, -1.0, 7.0),
+                "target": (0.0, 0.0, 0.5),
+                "energy": 60.0,
+                "kelvin": 10000,   # sky blue (within LuxCore 12 000 K cap)
+                "size": 8.0,
+                "size_y": 8.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+            # Ground bounce: warm earth tone from below, subtle detail in shadows
+            {
+                "name": "Ground_Bounce",
+                "type": "AREA",
+                "location": (0.0, 0.0, -0.5),
+                "target": (0.0, 0.0, 1.5),
+                "energy": 25.0,
+                "kelvin": 3800,
+                "size": 5.0,
+                "size_y": 5.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "sky2", "turbidity": 2.5, "gain": 0.015},
+        # BIDIR + high samples: A24 naturalism is born from global illumination
+        "luxcore_cfg": {"engine": "BIDIR", "path_depth": 14, "halt_samples": 1000, "denoiser": True},
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -1522,11 +1854,12 @@ PRESETS = [
 # ---------------------------------------------------------------------------
 
 CATEGORIES = [
-    ("ALL",          "All",           "Show all presets",                        "LIGHTPROBE_VOLUME", 0),
-    ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                "OUTLINER_OB_LIGHT", 1),
-    ("PRODUCT",      "Product",       "Product photography setups",               "CUBE",              2),
-    ("ARCHITECTURE", "Architecture",  "Architectural visualization setups",       "HOME",              3),
-    ("CREATIVE",     "Creative",      "Creative and artistic setups",             "SHADERFX",          4),
+    ("ALL",          "All",           "Show all presets",                                  "LIGHTPROBE_VOLUME", 0),
+    ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                          "OUTLINER_OB_LIGHT", 1),
+    ("PRODUCT",      "Product",       "Product photography setups",                        "CUBE",              2),
+    ("ARCHITECTURE", "Architecture",  "Architectural visualization setups",                "HOME",              3),
+    ("CREATIVE",     "Creative",      "Creative and artistic setups",                      "SHADERFX",          4),
+    ("CINEMATIC",    "Cinematic",     "Film-inspired setups referencing real productions", "SEQUENCE",          5),
 ]
 
 CATEGORY_ICONS = {
@@ -1535,6 +1868,7 @@ CATEGORY_ICONS = {
     "PRODUCT":      "CUBE",
     "ARCHITECTURE": "HOME",
     "CREATIVE":     "SHADERFX",
+    "CINEMATIC":    "SEQUENCE",
 }
 
 # Build lookup dict for fast access

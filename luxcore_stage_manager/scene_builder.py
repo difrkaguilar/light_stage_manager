@@ -121,6 +121,14 @@ def create_light(descriptor:    dict,
         intensity_mult: Global energy multiplier
         temp_offset:   Kelvin offset for color temperature
 
+    Light descriptor optional keys handled here:
+        cycles_energy: float — if present, overrides ``energy`` for the
+            Cycles/EEVEE path only (Opción B dual-calibration).  LuxCore
+            continues to use ``energy`` × ``luxcore_gain`` as before.
+            Useful for POINT lights whose LuxCore gain-based brightness
+            does not map linearly to Cycles Watts (e.g. cinematic
+            practicals with luxcore_gain > 1).
+
     Returns:
         Created bpy.types.Object or None on failure.
     """
@@ -215,6 +223,17 @@ def create_light(descriptor:    dict,
     # PHASE 2b: Cycles-specific properties (only when Cycles/EEVEE is active)
     # =========================================================================
     elif engine == "CYCLES":
+        # Opción B — dual-calibration: if the preset specifies a separate
+        # Cycles energy value, apply it now (after link, before MIS/spread).
+        # This handles lights whose luxcore_gain has no Cycles equivalent
+        # (e.g. POINT practicals with luxcore_gain >> 1.0).
+        cycles_energy_raw = descriptor.get("cycles_energy")
+        if cycles_energy_raw is not None:
+            cycles_actual = max(0.0, float(cycles_energy_raw)) * max(0.0001, float(intensity_mult))
+            light_data.energy = cycles_actual
+            log.debug("[LSM-CYC] cycles_energy override: %.1fW → %.1fW (×%.3f mult)",
+                      float(cycles_energy_raw), cycles_actual, intensity_mult)
+
         apply_cycles_light_props(
             light_data  = light_data,
             light_type  = light_type,
