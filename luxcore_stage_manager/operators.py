@@ -12,6 +12,7 @@ import logging
 import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty
+from mathutils import Vector
 
 from .presets_data import PRESETS, PRESETS_BY_ID
 from .scene_builder import apply_preset, remove_lsm_lights
@@ -63,6 +64,77 @@ def _expected_lxc_gain(descriptor: dict, intensity_mult: float) -> float:
     return max(0.0001, actual_energy * gain_scale * gain_mult)
 
 
+def _compute_scale_and_origin(context) -> tuple[float, Vector]:
+    """Return (scene_scale, scene_origin) from the current scene state.
+
+    Strategy (in order of priority):
+      1. Active object with mesh data → longest bounding-box axis + BB centre.
+      2. All visible mesh objects union → same.
+      3. scene.unit_settings.scale_length as a bare hint (rare fallback).
+      4. 1.0 / origin (0,0,0) — preset defaults, calibrated for Suzanne.
+
+    The scale returned is the length of the longest axis of the reference
+    bounding box in world space.  The origin is the centre of that box, so
+    the rig orbits and aims at the actual object rather than the world axis.
+    """
+    props = getattr(context.scene, "lsm_props", None)
+    if props is not None:
+        ref_mode = getattr(props, "scale_reference", "ACTIVE")
+        if ref_mode == "MANUAL":
+            return float(props.manual_scale), Vector((0.0, 0.0, 0.0))
+
+    def _bbox_from_objects(objects):
+        """Return (min_corner, max_corner) in world space for a list of mesh objects."""
+        world_verts = []
+        for obj in objects:
+            if obj.type != "MESH":
+                continue
+            for corner in obj.bound_box:          # 8 local corners
+                world_verts.append(obj.matrix_world @ Vector(corner))
+        if not world_verts:
+            return None, None
+        min_c = Vector((min(v.x for v in world_verts),
+                        min(v.y for v in world_verts),
+                        min(v.z for v in world_verts)))
+        max_c = Vector((max(v.x for v in world_verts),
+                        max(v.y for v in world_verts),
+                        max(v.z for v in world_verts)))
+        return min_c, max_c
+
+    def _scale_and_origin_from_bbox(min_c, max_c):
+        if min_c is None:
+            return 1.0, Vector((0.0, 0.0, 0.0))
+        dims   = max_c - min_c
+        scale  = max(dims.x, dims.y, dims.z)
+        origin = (min_c + max_c) / 2.0
+        return max(0.001, scale), origin
+
+    ref_mode = "ACTIVE"
+    if props is not None:
+        ref_mode = getattr(props, "scale_reference", "ACTIVE")
+
+    if ref_mode == "ACTIVE":
+        obj = context.active_object
+        if obj and obj.type == "MESH":
+            min_c, max_c = _bbox_from_objects([obj])
+            return _scale_and_origin_from_bbox(min_c, max_c)
+        # Active object exists but is not a mesh — fall through to SCENE
+        log.debug("[LSM] scale_reference=ACTIVE but no mesh active, falling back to SCENE")
+
+    if ref_mode in ("SCENE", "ACTIVE"):      # ACTIVE falls here when no mesh
+        visible = [o for o in context.scene.objects
+                   if o.type == "MESH" and not o.hide_viewport
+                   and not o.name.startswith(LSM_PREFIX)]
+        if visible:
+            min_c, max_c = _bbox_from_objects(visible)
+            return _scale_and_origin_from_bbox(min_c, max_c)
+
+    # Last resort: unit scale as a bare hint, origin at world centre
+    unit_scale = getattr(context.scene.unit_settings, "scale_length", 1.0)
+    log.debug("[LSM] No reference mesh found; using unit_scale=%.4f", unit_scale)
+    return float(unit_scale), Vector((0.0, 0.0, 0.0))
+
+
 # ---------------------------------------------------------------------------
 # LSM_OT_ApplyPreset
 # ---------------------------------------------------------------------------
@@ -92,13 +164,16 @@ class LSM_OT_ApplyPreset(Operator):
             return {"CANCELLED"}
 
         try:
+            scene_scale, scene_origin = _compute_scale_and_origin(context)
             created = apply_preset(
-                preset            = preset,
-                scene             = context.scene,
-                intensity_mult    = float(props.intensity_multiplier),
-                temp_offset       = float(props.temperature_offset),
-                clear_existing    = bool(props.clear_existing),
-                configure_luxcore = bool(props.auto_configure_luxcore),
+                preset             = preset,
+                scene              = context.scene,
+                intensity_mult     = float(props.intensity_multiplier),
+                temp_offset        = float(props.temperature_offset),
+                clear_existing     = bool(props.clear_existing),
+                configure_luxcore  = bool(props.auto_configure_luxcore),
+                scene_scale        = scene_scale,
+                scene_origin       = scene_origin,
             )
         except Exception as exc:
             log.exception("[LSM] apply_preset failed for %r", pid)
