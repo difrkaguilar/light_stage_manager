@@ -1,0 +1,11 @@
+# This file is managed by Light Stage Manager.
+# Do not edit manually — regenerate via Preferences > Light Stage Manager > Generate Asset Library.
+# Format: uuid:catalog/path:Simple Name
+VERSION 1
+
+24742c73-4cd1-c3f0-1a98-71d94889ed5b:Light Stage Manager:Light Stage Manager
+1a04b50b-22b0-b921-cdd9-441d6fe312af:Light Stage Manager/Portrait:Portrait
+57adc79d-57eb-28e8-dc3d-d983217eba36:Light Stage Manager/Product:Product
+0cc1e517-a50e-6587-7d8d-cb48099714f9:Light Stage Manager/Architecture:Architecture
+1dc5a3d6-2771-cf53-2c28-07f35f2c46b4:Light Stage Manager/Creative:Creative
+8f7e54e8-576c-1898-c9e5-74c1e47eac91:Light Stage Manager/Cinematic:Cinematic

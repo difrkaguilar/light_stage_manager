@@ -53,7 +53,7 @@ CATEGORY_ICONS:   dict      = {c[0]: c[3] for c in CATEGORY_DEFS}
 VALID_LIGHT_TYPES  = frozenset({"AREA", "SPOT", "SUN", "POINT"})
 VALID_AREA_SHAPES  = frozenset({"SQUARE", "RECTANGLE", "DISK", "ELLIPSE"})
 VALID_LXC_ENGINES  = frozenset({"PATH", "BIDIR"})
-VALID_ENV_TYPES    = frozenset({"sky2", "constant"})
+VALID_ENV_TYPES    = frozenset({"sky2", "constant", "hdri"})
 
 # Kelvin
 KELVIN_MIN     = 1000.0

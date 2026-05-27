@@ -225,6 +225,13 @@ def create_light(descriptor:    dict,
         aim_world = Vector(target) * scene_scale + scene_origin
         _look_at(obj, aim_world)
 
+    # Store metadata as custom properties for round-trip serialisation and
+    # for the fill-ratio operator to identify light roles without name parsing.
+    obj["lsm_role"]         = descriptor.get("role", "fill")   # "key"|"fill"|"rim"|"env"
+    obj["lsm_raw_energy"]   = float(raw_energy)                 # preset value at scale=1
+    obj["lsm_light_type"]   = light_type
+    obj["lsm_preset_id"]    = descriptor.get("_preset_id", "")  # injected by apply_preset
+
     # =========================================================================
     # PHASE 2a: LuxCore-specific properties (only when LuxCore is active)
     # =========================================================================
@@ -317,6 +324,53 @@ def remove_lsm_lights(scene) -> int:
 # Full preset application — engine-aware entry point
 # ---------------------------------------------------------------------------
 
+def apply_fill_ratio(scene, fill_ratio: float, intensity_mult: float = 1.0) -> int:
+    """Adjust fill and rim light energies relative to the key light in the scene.
+
+    This operates on LSM_ lights **already in the scene** without re-applying
+    the preset.  The key light's energy is left unchanged; fill and rim lights
+    are scaled so their energy equals:
+
+        fill_energy = key_energy × fill_ratio
+
+    Args:
+        scene:         Target bpy.types.Scene
+        fill_ratio:    Target fill-to-key ratio (0.0 = dark fill, 1.0 = equal)
+        intensity_mult: Current global intensity multiplier (from lsm_props)
+
+    Returns:
+        Number of lights whose energy was updated.
+    """
+    # Find the key light to use as reference
+    key_obj   = None
+    key_energy = None
+    lsm_lights = [o for o in scene.objects
+                  if o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"]
+
+    for obj in lsm_lights:
+        if obj.get("lsm_role") == "key":
+            key_obj    = obj
+            key_energy = obj.data.energy
+            break
+
+    if key_obj is None or key_energy is None or key_energy <= 0:
+        log.debug("[LSM] apply_fill_ratio: no key light found")
+        return 0
+
+    updated = 0
+    for obj in lsm_lights:
+        role = obj.get("lsm_role", "fill")
+        if role in ("fill", "rim"):
+            # rim lights get half the fill ratio — they're meant to be subtle
+            ratio = fill_ratio if role == "fill" else fill_ratio * 0.5
+            new_energy = key_energy * ratio
+            obj.data.energy = max(0.001, new_energy)
+            updated += 1
+            log.debug("[LSM] fill_ratio: %s (%s) → %.1fW", obj.name, role, new_energy)
+
+    return updated
+
+
 def apply_preset(preset:            dict,
                  scene,
                  intensity_mult:    float = 1.0,
@@ -367,9 +421,19 @@ def apply_preset(preset:            dict,
     collection = get_or_create_collection(col_name, parent=scene.collection)
 
     created = []
-    for desc in preset.get("lights", []):
+    preset_id = preset.get("id", "")
+
+    # Default role assignment when not explicit in preset descriptor:
+    # light[0] → key, light[1] → fill, light[2] → rim, rest → fill
+    # Presets can override with an explicit "role" field on any light.
+    _DEFAULT_ROLES = ("key", "fill", "rim")
+
+    for i, desc in enumerate(preset.get("lights", [])):
+        if "role" not in desc:
+            desc = dict(desc, role=_DEFAULT_ROLES[i] if i < 3 else "fill")
+        desc_with_id = dict(desc, _preset_id=preset_id)
         obj = create_light(
-            descriptor     = desc,
+            descriptor     = desc_with_id,
             collection     = collection,
             engine         = engine,
             intensity_mult = intensity_mult,
@@ -403,6 +467,21 @@ def apply_preset(preset:            dict,
                             color=env_cfg.get("color", (0.05, 0.05, 0.05)),
                             gain=env_cfg.get("gain", 0.001),
                         )
+                    elif t == "hdri":
+                        from .cycles_compat import resolve_hdri_path
+                        hdri_name = env_cfg.get("name", "")
+                        filepath  = resolve_hdri_path(hdri_name) if hdri_name else None
+                        if filepath:
+                            wp.configure_hdri(
+                                filepath = filepath,
+                                gain     = env_cfg.get("gain",     1.0),
+                                rotation = env_cfg.get("rotation", 0.0),
+                                gamma    = env_cfg.get("gamma",    1.0),
+                            )
+                        else:
+                            log.warning("[LSM] HDRI %r not found — LuxCore fallback to SKY2",
+                                        hdri_name)
+                            wp.configure_sky2(turbidity=4.0, gain=env_cfg.get("gain", 0.01))
             if lxc_cfg:
                 sp = LuxCoreSceneProxy(scene)
                 if sp.available:

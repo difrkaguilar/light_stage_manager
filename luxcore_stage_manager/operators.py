@@ -677,6 +677,372 @@ def _poll_render_process(proc, pdir: str, context) -> float | None:
     return None   # stop timer
 
 
+class LSM_OT_AdjustFillRatio(Operator):
+    """Apply the current fill_ratio to in-scene LSM lights.
+
+    Called automatically by the fill_ratio property update callback.
+    Can also be invoked manually via F3 search.
+    """
+    bl_idname  = "lsm.adjust_fill_ratio"
+    bl_label   = "Adjust Fill Ratio"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def execute(self, context):
+        from .scene_builder import apply_fill_ratio
+        props = context.scene.lsm_props
+        n = apply_fill_ratio(
+            scene          = context.scene,
+            fill_ratio     = float(props.fill_ratio),
+            intensity_mult = float(props.intensity_multiplier),
+        )
+        if n == 0:
+            self.report({"INFO"}, "LSM: No fill/rim lights found — key light required")
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
+# LSM_OT_SavePresetFromScene
+# ---------------------------------------------------------------------------
+
+def _user_presets_path() -> str:
+    import os
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), "user_presets.json")
+
+
+def load_user_presets() -> list:
+    """Load user presets from disk. Returns [] if file absent or corrupt."""
+    import json, os
+    path = _user_presets_path()
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, list) else []
+    except Exception as exc:
+        log.warning("[LSM] load_user_presets: %s", exc)
+        return []
+
+
+def save_user_presets(presets: list) -> bool:
+    """Persist user presets list to disk. Returns True on success."""
+    import json
+    try:
+        with open(_user_presets_path(), "w", encoding="utf-8") as fh:
+            json.dump(presets, fh, indent=2, ensure_ascii=False)
+        return True
+    except Exception as exc:
+        log.error("[LSM] save_user_presets: %s", exc)
+        return False
+
+
+def _serialize_light(obj, scene_origin, scene_scale: float) -> dict | None:
+    """Convert a scene light Object back to a normalised LSM descriptor dict."""
+    from mathutils import Vector
+    if obj.type != "LIGHT":
+        return None
+    ld         = obj.data
+    light_type = ld.type
+    origin     = Vector(scene_origin)
+    raw_loc    = Vector(obj.location) - origin
+    energy_scale = (scene_scale ** 2) if light_type != "SUN" else scene_scale
+    raw_energy   = ld.energy / max(0.001, energy_scale)
+
+    desc: dict = {
+        "name":         obj.name.replace(LSM_PREFIX, "", 1),
+        "type":         light_type,
+        "location":     tuple(round(v / max(0.001, scene_scale), 4) for v in raw_loc),
+        "target":       None,
+        "energy":       round(raw_energy, 2),
+        "kelvin":       None,
+        "color":        tuple(round(c, 4) for c in ld.color[:3]),
+        "use_shadow":   ld.use_shadow,
+        "luxcore_gain": 1.0,
+        "role":         obj.get("lsm_role", "fill"),
+    }
+    if light_type == "AREA":
+        desc["shape"]  = ld.shape
+        desc["size"]   = round(ld.size / scene_scale, 4)
+        desc["size_y"] = round(getattr(ld, "size_y", ld.size) / scene_scale, 4)
+    elif light_type == "SPOT":
+        desc["size"]       = round(ld.spot_size, 4)
+        desc["spot_blend"] = round(ld.spot_blend, 4)
+    elif light_type == "SUN":
+        desc["size"] = round(ld.angle, 4)
+    elif light_type == "POINT":
+        desc["size"] = round(ld.shadow_soft_size / scene_scale, 4)
+    # Recover aim from rotation
+    if light_type != "POINT":
+        fwd = obj.matrix_world.to_3x3() @ Vector((0.0, 0.0, -1.0))
+        aim = Vector(obj.location) + fwd
+        aim_n = (aim - origin) / max(0.001, scene_scale)
+        desc["target"] = tuple(round(v, 4) for v in aim_n)
+    return desc
+
+
+class LSM_OT_AdjustFillRatio(Operator):
+    """Apply fill_ratio to in-scene LSM lights. Called by property update callback."""
+    bl_idname  = "lsm.adjust_fill_ratio"
+    bl_label   = "Adjust Fill Ratio"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def execute(self, context):
+        from .scene_builder import apply_fill_ratio
+        props = context.scene.lsm_props
+        n = apply_fill_ratio(
+            scene          = context.scene,
+            fill_ratio     = float(props.fill_ratio),
+            intensity_mult = float(props.intensity_multiplier),
+        )
+        if n == 0:
+            self.report({"INFO"}, "LSM: No fill/rim lights found — key light required")
+        return {"FINISHED"}
+
+
+class LSM_OT_SavePresetFromScene(Operator):
+    """Save the current LSM light rig as a user preset."""
+    bl_idname  = "lsm.save_preset_from_scene"
+    bl_label   = "Save Rig as Preset"
+    bl_options = {"REGISTER"}
+
+    preset_name: bpy.props.StringProperty(
+        name="Name", default="My Preset")
+    preset_category: bpy.props.EnumProperty(
+        name="Category", items=list(CATEGORIES)[1:], default="CREATIVE")
+    preset_description: bpy.props.StringProperty(
+        name="Description", default="")
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def invoke(self, context, event):
+        props = getattr(context.scene, "lsm_props", None)
+        if props and props.active_preset_id:
+            from .presets_data import PRESETS_BY_ID
+            p = PRESETS_BY_ID.get(props.active_preset_id)
+            if p:
+                self.preset_name     = p["name"] + " (custom)"
+                self.preset_category = p.get("category", "CREATIVE")
+        return context.window_manager.invoke_props_dialog(self, width=380)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "preset_name")
+        layout.prop(self, "preset_category")
+        layout.prop(self, "preset_description")
+        lsm_lights = [o for o in context.scene.objects
+                      if o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"]
+        if lsm_lights:
+            box = layout.box()
+            box.scale_y = 0.8
+            box.label(text="%d lights will be saved:" % len(lsm_lights), icon="LIGHT")
+            for obj in lsm_lights[:8]:
+                box.label(text="  %s  [%s]  %.0fW" % (
+                    obj.name, obj.get("lsm_role","?"), obj.data.energy))
+
+    def execute(self, context):
+        import time
+        lsm_lights = [o for o in context.scene.objects
+                      if o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"]
+        if not lsm_lights:
+            self.report({"WARNING"}, "LSM: No LSM lights in scene")
+            return {"CANCELLED"}
+
+        scene_scale, scene_origin = _compute_scale_and_origin(context)
+        light_descs = [d for d in
+                       (_serialize_light(o, scene_origin, scene_scale) for o in lsm_lights)
+                       if d is not None]
+        if not light_descs:
+            self.report({"ERROR"}, "LSM: Could not serialise any lights")
+            return {"CANCELLED"}
+
+        safe = self.preset_name.lower()
+        for ch in " /\\()[]{}": safe = safe.replace(ch, "_")
+        pid = "user_%s_%s" % (safe[:24], str(int(time.time()))[-5:])
+
+        new_preset = {
+            "id":          pid,
+            "name":        self.preset_name.strip() or "User Preset",
+            "category":    self.preset_category,
+            "description": self.preset_description.strip(),
+            "is_user":     True,
+            "lights":      light_descs,
+            "env_light":   None,
+            "luxcore_cfg": {"engine":"PATH","path_depth":8,"halt_samples":256,"denoiser":True},
+        }
+
+        from .presets_data import validate_preset
+        errs = validate_preset(new_preset)
+        if errs:
+            self.report({"ERROR"}, "LSM: Validation — %s" % "; ".join(errs))
+            return {"CANCELLED"}
+
+        user_presets = load_user_presets()
+        user_presets = [p for p in user_presets if p.get("name") != new_preset["name"]]
+        user_presets.append(new_preset)
+
+        if not save_user_presets(user_presets):
+            self.report({"ERROR"}, "LSM: Could not write user_presets.json")
+            return {"CANCELLED"}
+
+        try:
+            from .presets_data import reload_user_presets
+            reload_user_presets()
+        except Exception:
+            pass
+
+        self.report({"INFO"}, "LSM: '%s' saved (%d lights)" % (
+            new_preset["name"], len(light_descs)))
+        return {"FINISHED"}
+
+
+class LSM_OT_DeleteUserPreset(Operator):
+    """Delete the selected user preset (confirmation required)."""
+    bl_idname  = "lsm.delete_user_preset"
+    bl_label   = "Delete User Preset"
+    bl_options = {"REGISTER"}
+
+    preset_id: bpy.props.StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        props = getattr(context.scene, "lsm_props", None)
+        if props is None:
+            return False
+        from .presets_data import PRESETS_BY_ID
+        return PRESETS_BY_ID.get(props.active_preset_id, {}).get("is_user", False)
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        from .presets_data import reload_user_presets
+        pid = self.preset_id or getattr(
+            context.scene.lsm_props, "active_preset_id", "")
+        if not pid:
+            self.report({"WARNING"}, "LSM: No preset selected"); return {"CANCELLED"}
+        presets = [p for p in load_user_presets() if p.get("id") != pid]
+        save_user_presets(presets)
+        reload_user_presets()
+        self.report({"INFO"}, "LSM: User preset deleted")
+        return {"FINISHED"}
+
+
+class LSM_OT_GenerateAssetLibrary(Operator):
+    """Generate (or regenerate) the LSM_Assets.blend file for the Asset Browser.
+
+    Creates one World asset per preset with full metadata (description,
+    catalog UUID, tags).  The assets/ directory can then be registered as
+    an Asset Library in Blender Preferences > File Paths > Asset Libraries.
+    """
+    bl_idname  = "lsm.generate_asset_library"
+    bl_label   = "Generate Asset Library"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context):
+        return context is not None
+
+    def execute(self, context):
+        from .asset_builder import generate_asset_library, assets_blend_path
+        import os
+
+        def _report(level, msg):
+            lvl_map = {"INFO": "INFO", "WARNING": "WARNING", "ERROR": "ERROR"}
+            self.report({lvl_map.get(level, "INFO")}, "LSM: " + msg)
+
+        success, message = generate_asset_library(report_fn=_report)
+
+        if success:
+            # Prompt the user with the path they need to register
+            path = os.path.dirname(assets_blend_path())
+            self.report({"INFO"},
+                        "LSM: Library ready. Register this folder as an Asset Library: %s" % path)
+            return {"FINISHED"}
+        else:
+            return {"CANCELLED"}
+
+
+# ---------------------------------------------------------------------------
+# LSM_OT_ApplyFromAsset
+# ---------------------------------------------------------------------------
+
+class LSM_OT_ApplyFromAsset(Operator):
+    """Apply the LSM preset that is currently selected in the Asset Browser.
+
+    The operator reads ``context.asset`` (Blender 4.0+), resolves the preset
+    ID from the World's custom property or by name matching, then delegates
+    to the standard Apply pipeline (scale-aware, engine-aware).
+    """
+    bl_idname  = "lsm.apply_from_asset"
+    bl_label   = "Apply from Asset Browser"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        from .asset_builder import is_lsm_asset
+        return is_lsm_asset(context)
+
+    def execute(self, context):
+        from .asset_builder import get_active_lsm_asset
+
+        pid = get_active_lsm_asset(context)
+        if not pid:
+            self.report({"WARNING"}, "LSM: No LSM asset selected in Asset Browser")
+            return {"CANCELLED"}
+
+        preset = PRESETS_BY_ID.get(pid)
+        if preset is None:
+            self.report({"ERROR"},
+                        "LSM: Preset '%s' not found — regenerate the Asset Library" % pid)
+            return {"CANCELLED"}
+
+        # Sync the N-panel selection so the user sees the active preset there too
+        props = getattr(context.scene, "lsm_props", None)
+        if props is not None:
+            props.active_preset_id = pid
+            # Also sync the category filter so the preset is visible in the list
+            cat = preset.get("category", "ALL")
+            if props.active_category not in ("ALL", cat):
+                props.active_category = "ALL"
+
+        # Delegate to the standard apply pipeline
+        try:
+            scene_scale, scene_origin = _compute_scale_and_origin(context)
+            created = apply_preset(
+                preset             = preset,
+                scene              = context.scene,
+                intensity_mult     = float(props.intensity_multiplier) if props else 1.0,
+                temp_offset        = float(props.temperature_offset)   if props else 0.0,
+                clear_existing     = bool(props.clear_existing)        if props else True,
+                configure_luxcore  = bool(props.auto_configure_luxcore) if props else True,
+                scene_scale        = scene_scale,
+                scene_origin       = scene_origin,
+            )
+        except Exception as exc:
+            log.exception("[LSM] apply_from_asset failed for %r", pid)
+            self.report({"ERROR"}, "LSM: Error applying '%s': %s" % (
+                preset.get("name", pid), exc))
+            return {"CANCELLED"}
+
+        n = len(created)
+        self.report({"INFO"}, "LSM: '%s' applied from Asset Browser — %d light%s" % (
+            preset.get("name", pid), n, "s" if n != 1 else ""))
+        return {"FINISHED"}
+
+
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
@@ -690,6 +1056,11 @@ OPERATORS = (
     LSM_OT_DiagnoseLights,
     LSM_OT_VerifyActivePreset,
     LSM_OT_RenderPreviews,
+    LSM_OT_AdjustFillRatio,
+    LSM_OT_SavePresetFromScene,
+    LSM_OT_DeleteUserPreset,
+    LSM_OT_GenerateAssetLibrary,
+    LSM_OT_ApplyFromAsset,
 )
 
 

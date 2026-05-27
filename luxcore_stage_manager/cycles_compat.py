@@ -144,11 +144,67 @@ def reset_cycles_world(scene,
         log.warning("[LSM-CYC] Could not reset neutral world: %s", exc)
 
 
+def resolve_hdri_path(name: str) -> str | None:
+    """Resolve a Blender studio light name to its absolute file path.
+
+    Searches ``bpy.context.preferences.studio_lights`` for a WORLD-type light
+    whose ``.name`` matches *name* (case-insensitive, with or without extension).
+
+    Returns the absolute path string, or None if not found.
+
+    Examples::
+
+        resolve_hdri_path("forest.exr")      → "/path/to/blender/datafiles/.../forest.exr"
+        resolve_hdri_path("forest")          → same
+        resolve_hdri_path("Interior.exr")    → "/path/to/.../interior.exr"  (case-insensitive)
+    """
+    import bpy
+
+    target = name.lower()
+    # Strip extension for comparison so "forest" matches "forest.exr"
+    target_stem = target.rsplit(".", 1)[0] if "." in target else target
+
+    try:
+        for sl in bpy.context.preferences.studio_lights:
+            if sl.type != "WORLD":
+                continue
+            sl_name  = sl.name.lower()
+            sl_stem  = sl_name.rsplit(".", 1)[0] if "." in sl_name else sl_name
+            if sl_name == target or sl_stem == target_stem:
+                return sl.path
+    except Exception as exc:
+        log.warning("[LSM-CYC] resolve_hdri_path: %s", exc)
+
+    return None
+
+
+def list_blender_hdris() -> list[tuple[str, str]]:
+    """Return a list of (name, path) for all Blender built-in WORLD studio lights.
+
+    Useful for building EnumProperty items dynamically.
+    Returns an empty list if preferences are not accessible.
+    """
+    import bpy
+    result = []
+    try:
+        for sl in bpy.context.preferences.studio_lights:
+            if sl.type == "WORLD":
+                result.append((sl.name, sl.path))
+    except Exception as exc:
+        log.debug("[LSM-CYC] list_blender_hdris: %s", exc)
+    return result
+
+
 def apply_cycles_sky(scene, env_cfg: dict) -> None:
     """Configure the Cycles sky/world when env_light is defined in a preset.
 
-    Supports: sky2 (Nishita sky) and constant (flat ambient) modes.
+    Supports:
+        sky2     → Nishita procedural sky
+        constant → flat ambient colour
+        hdri     → Blender built-in HDRI via studio_lights name lookup
+
     Falls back gracefully if the World node tree is not available.
+    For ``hdri`` type, falls back to ``sky2`` if the named file is not found.
     """
     import bpy
 
@@ -180,8 +236,8 @@ def apply_cycles_sky(scene, env_cfg: dict) -> None:
             sky_node.turbidity = min(10.0, max(1.0, turbidity))
 
             bg_node.inputs["Strength"].default_value = min(0.9, gain * 20.0)
-            node_tree.links.new(sky_node.outputs["Color"],   bg_node.inputs["Color"])
-            node_tree.links.new(bg_node.outputs["Background"], out_node.inputs["Surface"])
+            node_tree.links.new(sky_node.outputs["Color"],      bg_node.inputs["Color"])
+            node_tree.links.new(bg_node.outputs["Background"],  out_node.inputs["Surface"])
         except Exception as exc:
             log.warning("[LSM-CYC] Could not set Nishita sky: %s", exc)
 
@@ -196,6 +252,40 @@ def apply_cycles_sky(scene, env_cfg: dict) -> None:
             node_tree.links.new(bg_node.outputs["Background"], out_node.inputs["Surface"])
         except Exception as exc:
             log.warning("[LSM-CYC] Could not set constant sky: %s", exc)
+
+    elif env_type == "hdri":
+        hdri_name = env_cfg.get("name", "")
+        rotation  = float(env_cfg.get("rotation", 0.0))
+        filepath  = resolve_hdri_path(hdri_name) if hdri_name else None
+
+        if filepath is None:
+            log.warning("[LSM-CYC] HDRI %r not found in studio lights — falling back to sky2",
+                        hdri_name)
+            # Graceful fallback: neutral overcast
+            apply_cycles_sky(scene, {"type": "sky2", "turbidity": 4.0, "gain": gain})
+            return
+
+        try:
+            img = bpy.data.images.load(filepath, check_existing=True)
+
+            tex_node  = node_tree.nodes.new("ShaderNodeTexEnvironment")
+            map_node  = node_tree.nodes.new("ShaderNodeMapping")
+            coord_node = node_tree.nodes.new("ShaderNodeTexCoord")
+            bg_node   = node_tree.nodes.new("ShaderNodeBackground")
+            out_node  = node_tree.nodes.new("ShaderNodeOutputWorld")
+
+            tex_node.image              = img
+            map_node.inputs["Rotation"].default_value = (0.0, 0.0, rotation)
+            bg_node.inputs["Strength"].default_value  = gain
+
+            node_tree.links.new(coord_node.outputs["Generated"], map_node.inputs["Vector"])
+            node_tree.links.new(map_node.outputs["Vector"],      tex_node.inputs["Vector"])
+            node_tree.links.new(tex_node.outputs["Color"],       bg_node.inputs["Color"])
+            node_tree.links.new(bg_node.outputs["Background"],   out_node.inputs["Surface"])
+
+            log.debug("[LSM-CYC] HDRI applied: %s  gain=%.3f  rot=%.3f", filepath, gain, rotation)
+        except Exception as exc:
+            log.warning("[LSM-CYC] Could not apply HDRI %r: %s", filepath, exc)
 
 
 # ---------------------------------------------------------------------------

@@ -145,6 +145,22 @@ class LSM_SceneProperties(PropertyGroup):
         unit="LENGTH",
     )
 
+    # --- Fill ratio ---
+    fill_ratio: bpy.props.FloatProperty(
+        name="Fill Ratio",
+        description=(
+            "Fill-to-key energy ratio applied to existing LSM lights in the scene.\n"
+            "1.0 = fill equals key (flat lighting)\n"
+            "0.5 = fill at half key energy (2:1 ratio, standard portrait)\n"
+            "0.0 = no fill (maximum drama)\n"
+            "Rim lights track at half the fill ratio.\n"
+            "Does not re-apply the preset — adjusts in-scene lights directly."
+        ),
+        default=1.0, min=0.0, max=2.0, soft_min=0.0, soft_max=1.0,
+        step=5, precision=2,
+        update=lambda self, ctx: bpy.ops.lsm.adjust_fill_ratio(),
+    )
+
 # ---------------------------------------------------------------------------
 # UIList
 # ---------------------------------------------------------------------------
@@ -156,10 +172,19 @@ class LSM_UL_PresetList(UIList):
                   active_data, active_propname, index):
         from .presets_data import PRESETS_BY_ID
         preset   = PRESETS_BY_ID.get(item.preset_id)
-        cat_icon = CAT_ICONS.get(preset.get("category",""), "LIGHT") if preset else "LIGHT"
+        if preset is None:
+            layout.label(text=item.preset_id, icon="ERROR")
+            return
+
+        is_user  = preset.get("is_user", False)
+        cat_icon = CAT_ICONS.get(preset.get("category", ""), "LIGHT")
+
         row = layout.row(align=True)
-        row.label(text="", icon=cat_icon)
-        row.label(text=item.name)
+        # Category icon — for user presets swap to a star to distinguish them
+        row.label(text="", icon="SOLO_ON" if is_user else cat_icon)
+        # Name — append ★ suffix for user presets so they're scannable in a long list
+        name = preset.get("name", item.preset_id)
+        row.label(text=("★ " + name) if is_user else name)
 
     def filter_items(self, context, data, propname):
         return [], []
@@ -368,6 +393,26 @@ class LSM_PT_LightModifiers(Panel):
             col.label(text="Lighting Adjustments:", icon="LIGHT")
             col.prop(props, "intensity_multiplier", slider=True)
             col.prop(props, "temperature_offset",   slider=True)
+
+            # Fill ratio — only shown when LSM lights are in the scene
+            lsm_lights = [o for o in context.scene.objects
+                          if o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"]
+            has_key  = any(o.get("lsm_role") == "key"  for o in lsm_lights)
+            has_fill = any(o.get("lsm_role") in ("fill","rim") for o in lsm_lights)
+
+            if has_key and has_fill:
+                col.separator(factor=0.4)
+                fill_col = col.column(align=True)
+                fill_col.prop(props, "fill_ratio", slider=True)
+                # Ratio readout
+                ratio = props.fill_ratio
+                if ratio > 0.001:
+                    ratio_str = "%.0f:1 (key:fill)" % (1.0 / ratio) if ratio < 1.0 else "1:%.0f (flat)" % ratio
+                else:
+                    ratio_str = "No fill  (maximum drama)"
+                fill_col.scale_y = 0.8
+                fill_col.label(text=ratio_str, icon="DRIVER_TRANSFORM")
+
             col.separator(factor=0.3)
             col.operator("lsm.reset_modifiers",
                          text="Reset to Defaults", icon="LOOP_BACK")
@@ -428,12 +473,13 @@ class LSM_PT_SceneTools(Panel):
     def draw(self, context):
         try:
             layout = self.layout
+            props  = context.scene.lsm_props
             n = sum(1 for o in context.scene.objects
                     if o.name.startswith(LSM_PREFIX))
             if n > 0:
                 box = layout.box()
                 box.label(
-                    text="%d LSM light%s in scene" % (n,"s" if n!=1 else ""),
+                    text="%d LSM light%s in scene" % (n, "s" if n != 1 else ""),
                     icon="OUTLINER_OB_LIGHT")
                 col = box.column(align=True)
                 col.operator("lsm.select_lights", text="Select All",
@@ -447,6 +493,37 @@ class LSM_PT_SceneTools(Panel):
                              text="Diagnose (Console)", icon="INFO")
             else:
                 layout.label(text="No LSM lights in scene.", icon="INFO")
+
+            # ---- Save preset ------------------------------------------------
+            layout.separator(factor=0.4)
+            save_box = layout.box()
+            save_box.label(text="User Presets:", icon="BOOKMARKS")
+
+            save_col = save_box.column(align=True)
+            save_row = save_col.row(align=True)
+            save_row.scale_y = 1.3
+            save_op = save_row.operator(
+                "lsm.save_preset_from_scene",
+                text="Save Rig as Preset",
+                icon="ADD",
+            )
+            save_op.preset_name = ""   # dialog will pre-fill
+
+            # Delete button — only enabled when a user preset is selected
+            from .presets_data import PRESETS_BY_ID
+            active_preset = PRESETS_BY_ID.get(
+                getattr(props, "active_preset_id", ""), {})
+            is_user = active_preset.get("is_user", False)
+
+            del_row = save_col.row(align=True)
+            del_row.enabled = is_user
+            del_op = del_row.operator(
+                "lsm.delete_user_preset",
+                text="Delete Selected" if is_user else "Delete (select user preset)",
+                icon="REMOVE",
+            )
+            del_op.preset_id = props.active_preset_id if is_user else ""
+
         except Exception as exc:
             log.error("LSM_PT_SceneTools.draw: %s", exc)
 
@@ -570,6 +647,104 @@ def _deferred_init():
 # Registration
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Registration
+# ---------------------------------------------------------------------------
+
+class LSM_PT_AssetBrowser(bpy.types.Panel):
+    """Panel shown in the Asset Browser sidebar when an LSM asset is active.
+
+    Displays preset metadata and provides a one-click Apply button that
+    delegates to the full scale-aware, engine-aware apply pipeline.
+    """
+    bl_label       = "Light Stage Manager"
+    bl_idname      = "LSM_PT_AssetBrowser"
+    bl_space_type  = "FILE_BROWSER"
+    bl_region_type = "TOOL_PROPS"
+    bl_category    = "LSM"
+
+    @classmethod
+    def poll(cls, context):
+        # Only show when the file browser is in Asset Browser mode
+        # and an LSM asset is selected
+        if not hasattr(context, "asset"):
+            return False
+        from .asset_builder import is_lsm_asset
+        return is_lsm_asset(context)
+
+    def draw(self, context):
+        try:
+            from .asset_builder import get_active_lsm_asset
+            from .presets_data import PRESETS_BY_ID
+
+            layout = self.layout
+            pid    = get_active_lsm_asset(context)
+            preset = PRESETS_BY_ID.get(pid) if pid else None
+
+            if preset is None:
+                layout.label(text="Unknown LSM preset", icon="ERROR")
+                return
+
+            # --- Preset identity ---
+            col = layout.column(align=True)
+            col.label(text=preset["name"], icon="LIGHT_SUN")
+            cat  = preset.get("category", "")
+            desc = preset.get("description", "")
+            if cat:
+                col.label(text="Category: %s" % cat.capitalize(),
+                          icon=CAT_ICONS.get(cat, "LIGHT"))
+
+            # --- Description (word-wrapped via label rows) ---
+            if desc:
+                layout.separator(factor=0.3)
+                box = layout.box()
+                box.scale_y = 0.8
+                # Split at sentence boundaries for readability
+                for sentence in desc.replace("\n", " ").split(". "):
+                    sentence = sentence.strip()
+                    if sentence:
+                        box.label(text=sentence + ("." if not sentence.endswith(".") else ""))
+
+            # --- Light summary ---
+            lights     = preset.get("lights", [])
+            lxc_cfg    = preset.get("luxcore_cfg", {})
+            eng_hint   = lxc_cfg.get("engine", "PATH")
+            n_lights   = len(lights)
+            light_types = {}
+            for l in lights:
+                t = l.get("type", "AREA")
+                light_types[t] = light_types.get(t, 0) + 1
+            summary = "  ".join("%d× %s" % (v, k) for k, v in light_types.items())
+
+            layout.separator(factor=0.3)
+            info = layout.column(align=True)
+            info.scale_y = 0.85
+            info.label(text="%d lights: %s" % (n_lights, summary), icon="LIGHT")
+            info.label(text="Engine: %s" % eng_hint, icon="RENDER_STILL")
+
+            # --- Apply button ---
+            layout.separator(factor=0.6)
+            row = layout.row()
+            row.scale_y = 1.6
+            row.operator("lsm.apply_from_asset",
+                         text="Apply Preset", icon="LIGHT_SUN")
+
+            # --- Scene props shortcut ---
+            scene = context.scene
+            if scene and hasattr(scene, "lsm_props"):
+                props = scene.lsm_props
+                layout.separator(factor=0.3)
+                sub = layout.column(align=True)
+                sub.label(text="Quick adjustments:", icon="TOOL_SETTINGS")
+                sub.prop(props, "intensity_multiplier", slider=True)
+                sub.prop(props, "scale_reference",      text="Scale")
+                if props.scale_reference == "MANUAL":
+                    sub.prop(props, "manual_scale")
+
+        except Exception as exc:
+            log.error("LSM_PT_AssetBrowser.draw: %s", exc)
+
+
 PROPERTY_GROUPS = (LSM_PresetListItem, LSM_SceneProperties)
 UILISTS         = (LSM_UL_PresetList,)
 PANELS          = (
@@ -579,6 +754,7 @@ PANELS          = (
     LSM_PT_SceneTools,
     LSM_PT_Previews,
     LSM_PT_RenderProperties,
+    LSM_PT_AssetBrowser,
 )
 
 

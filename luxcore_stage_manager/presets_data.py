@@ -1482,7 +1482,8 @@ PRESETS = [
                 "type": "POINT",
                 "location": (0.5, -0.3, 0.2),
                 "target": None,
-                "energy": 20.0,
+                "energy": 20.0,          # LuxCore: 20 × 0.10 × 8.0 = 16.0 gain
+                "cycles_energy": 140.0,  # Cycles: direct Watts compensating absent gain
                 "kelvin": 1850,
                 "size": 0.02,
                 "use_shadow": True,
@@ -1493,7 +1494,8 @@ PRESETS = [
                 "type": "POINT",
                 "location": (-0.4, 0.5, 0.15),
                 "target": None,
-                "energy": 15.0,
+                "energy": 15.0,          # LuxCore: 15 × 0.10 × 6.0 = 9.0 gain
+                "cycles_energy": 90.0,   # Cycles: proportional to Candle_Main
                 "kelvin": 1900,
                 "size": 0.02,
                 "use_shadow": True,
@@ -1860,4 +1862,53 @@ PRESETS = [
 CATEGORIES = CATEGORY_DEFS
 
 # Build lookup dict for fast access
-PRESETS_BY_ID = {p["id"]: p for p in PRESETS}
+PRESETS_BY_ID: dict = {p["id"]: p for p in PRESETS}
+
+
+# ---------------------------------------------------------------------------
+# User preset hot-reload
+# ---------------------------------------------------------------------------
+
+def reload_user_presets() -> int:
+    """Load user_presets.json and merge into the live PRESETS / PRESETS_BY_ID.
+
+    Called after save or delete operations so the UIList reflects changes
+    immediately without restarting Blender.
+
+    Returns the number of user presets loaded.
+    """
+    import os, json
+
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "user_presets.json")
+
+    # Remove any previously loaded user presets from the live collections
+    for pid in [p["id"] for p in PRESETS if p.get("is_user")]:
+        PRESETS_BY_ID.pop(pid, None)
+    PRESETS[:] = [p for p in PRESETS if not p.get("is_user")]
+
+    if not os.path.isfile(path):
+        return 0
+
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            user_list = json.load(fh)
+        if not isinstance(user_list, list):
+            return 0
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("[LSM] reload_user_presets: %s", exc)
+        return 0
+
+    loaded = 0
+    for p in user_list:
+        errs = validate_preset(p)
+        if not errs:
+            PRESETS.append(p)
+            PRESETS_BY_ID[p["id"]] = p
+            loaded += 1
+
+    return loaded
+
+
+# Load user presets at import time (addon startup)
+reload_user_presets()

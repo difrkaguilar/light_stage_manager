@@ -5,10 +5,10 @@
 bl_info = {
     "name":        "Light Stage Manager",
     "author":      "difrkaguilar + Claude",
-    "version":     (3, 3, 0),
-    "blender":     (4, 4, 0),
-    "location":    "3D Viewport > N-panel > LightStageManager",
-    "description": "30 professional lighting presets for LuxCore, Cycles and EEVEE",
+    "version":     (3, 4, 0),
+    "blender":     (4, 1, 0),
+    "location":    "3D Viewport > N-panel > LightStageManager  |  Asset Browser",
+    "description": "30 professional lighting presets for LuxCore, Cycles and EEVEE. Asset Browser ready.",
     "warning":     "Full LuxCore support requires BlendLuxCore 2.10.1+",
     "doc_url":     "",
     "tracker_url": "",
@@ -46,8 +46,8 @@ def register():
     bpy.app.timers.register(_deferred_migrations, first_interval=0.0)
 
     _modules_loaded = True
-    print("[Light Stage Manager] v3.3.0 registered"
-          " — 30 presets, LuxCore + Cycles, Blender 4.4+")
+    print("[Light Stage Manager] v3.4.0 registered"
+          " — 30 presets, LuxCore + Cycles, Blender 4.1+, Asset Browser ready")
 
 
 def unregister():
@@ -66,7 +66,7 @@ def unregister():
     bpy.utils.unregister_class(LSM_AddonPreferences)
 
     _modules_loaded = False
-    print("[Light Stage Manager] v3.3.0 unregistered.")
+    print("[Light Stage Manager] v3.4.0 unregistered.")
 
 
 if __name__ == "__main__":

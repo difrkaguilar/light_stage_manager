@@ -249,3 +249,32 @@ class LuxCoreWorldProxy:
         ok2 = _try_set(self._lx, "color", tuple(float(c) for c in color))
         ok3 = _try_set(self._lx, "gain",  float(gain))
         return any((ok1, ok2, ok3))
+
+    def configure_hdri(self, filepath: str, gain: float = 1.0,
+                       rotation: float = 0.0, gamma: float = 1.0) -> bool:
+        """Configure LuxCore INFINITE environment light from an image file.
+
+        Args:
+            filepath: Absolute path to the .hdr or .exr file.
+            gain:     Overall brightness multiplier.
+            rotation: Y-axis rotation in radians.
+            gamma:    Image gamma (1.0 = linear, which .exr files already are).
+        """
+        import bpy
+
+        if not filepath:
+            log.warning("[LSM-LXC] configure_hdri: empty filepath")
+            return False
+
+        try:
+            img = bpy.data.images.load(filepath, check_existing=True)
+        except Exception as exc:
+            log.error("[LSM-LXC] configure_hdri: could not load %r: %s", filepath, exc)
+            return False
+
+        ok1 = _try_set(self._lx, "light",    "INFINITE")
+        ok2 = _try_set(self._lx, "image",    img)
+        ok3 = _try_set(self._lx, "gain",     float(gain))
+        ok4 = _try_set(self._lx, "rotation", float(rotation))
+        ok5 = _try_set(self._lx, "gamma",    float(gamma))
+        return any((ok1, ok2, ok3, ok4, ok5))

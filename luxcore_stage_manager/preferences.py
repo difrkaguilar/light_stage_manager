@@ -65,6 +65,41 @@ class LSM_AddonPreferences(AddonPreferences):
         col.prop(self, "default_auto_configure")
         layout.separator()
         layout.prop(self, "show_luxcore_warning")
+
+        # ---- Asset Browser section -----------------------------------------
+        layout.separator()
+        asset_box = layout.box()
+        asset_box.label(text="Asset Browser Integration:", icon="ASSET_MANAGER")
+
+        from .asset_builder import asset_library_exists, assets_blend_path
+        import os
+
+        if asset_library_exists():
+            asset_box.label(
+                text="Library: %s" % assets_blend_path(),
+                icon="CHECKMARK")
+            row = asset_box.row(align=True)
+            row.operator("lsm.generate_asset_library",
+                         text="Regenerate", icon="FILE_REFRESH")
+        else:
+            asset_box.label(
+                text="Library not generated yet.", icon="ERROR")
+            row = asset_box.row(align=True)
+            row.scale_y = 1.4
+            row.operator("lsm.generate_asset_library",
+                         text="Generate Asset Library", icon="ASSET_MANAGER")
+
+        # Setup instructions
+        guide = asset_box.column(align=True)
+        guide.scale_y = 0.85
+        guide.separator(factor=0.5)
+        guide.label(text="One-time setup after generating:", icon="INFO")
+        lib_path = os.path.dirname(assets_blend_path())
+        guide.label(text="  Edit > Preferences > File Paths > Asset Libraries")
+        guide.label(text="  Add (+) → Name: Light Stage Manager")
+        guide.label(text="  Path: %s" % lib_path)
+        guide.label(text="  Import method: Don't Import")
+
         layout.separator()
         box = layout.box()
         box.label(text="Diagnostic:", icon="INFO")
@@ -84,5 +119,5 @@ class LSM_AddonPreferences(AddonPreferences):
         box.separator()
         box.label(text="Supported engines:", icon="SHADING_RENDERED")
         box.label(text="  ✓ LuxCore (BlendLuxCore 2.10.1+)")
-        box.label(text="  ✓ Cycles (Blender 4.4+)")
+        box.label(text="  ✓ Cycles (Blender 4.1+)")
         box.label(text="  ✓ EEVEE (basic support)")
