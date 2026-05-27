@@ -13,7 +13,6 @@ from .constants import (
     PRESET_SCHEMA_VERSION,
     VALID_LIGHT_TYPES, VALID_CATEGORIES, VALID_AREA_SHAPES,
     VALID_LXC_ENGINES, VALID_ENV_TYPES, KELVIN_MIN, KELVIN_MAX,
-    CATEGORY_DEFS, CATEGORY_ICONS,
 )
 
 # ---------------------------------------------------------------------------
@@ -1853,11 +1852,24 @@ PRESETS = [
 # ---------------------------------------------------------------------------
 # Category metadata for UI
 # ---------------------------------------------------------------------------
-# CATEGORY_DEFS and CATEGORY_ICONS are the authoritative definitions,
-# living in constants.py. CATEGORIES is kept as an alias so existing
-# code that does `from .presets_data import CATEGORIES` keeps working.
 
-CATEGORIES = CATEGORY_DEFS
+CATEGORIES = [
+    ("ALL",          "All",           "Show all presets",                                  "LIGHTPROBE_VOLUME", 0),
+    ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                          "OUTLINER_OB_LIGHT", 1),
+    ("PRODUCT",      "Product",       "Product photography setups",                        "CUBE",              2),
+    ("ARCHITECTURE", "Architecture",  "Architectural visualization setups",                "HOME",              3),
+    ("CREATIVE",     "Creative",      "Creative and artistic setups",                      "SHADERFX",          4),
+    ("CINEMATIC",    "Cinematic",     "Film-inspired setups referencing real productions", "SEQUENCE",          5),
+]
+
+CATEGORY_ICONS = {
+    "ALL":          "LIGHTPROBE_VOLUME",
+    "PORTRAIT":     "OUTLINER_OB_LIGHT",
+    "PRODUCT":      "CUBE",
+    "ARCHITECTURE": "HOME",
+    "CREATIVE":     "SHADERFX",
+    "CINEMATIC":    "SEQUENCE",
+}
 
 # Build lookup dict for fast access
 PRESETS_BY_ID = {p["id"]: p for p in PRESETS}

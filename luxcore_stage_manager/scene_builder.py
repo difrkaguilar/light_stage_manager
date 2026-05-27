@@ -111,53 +111,34 @@ def create_light(descriptor:    dict,
                  collection,
                  engine:        str,
                  intensity_mult: float = 1.0,
-                 temp_offset:   float = 0.0,
-                 scene_scale:   float = 1.0,
-                 scene_origin          = None):
+                 temp_offset:   float = 0.0):
     """Create one light from a preset descriptor for the given engine.
 
-    Scale & targeting model
-    -----------------------
-    Presets are authored at scene_scale=1.0 (a ~1 m reference object, e.g.
-    Suzanne).  When the target object is larger or smaller the rig must adapt:
+    Args:
+        descriptor:    Light dict from preset["lights"][i]
+        collection:    Blender collection to link the object into
+        engine:        "LUXCORE" | "CYCLES" | "OTHER"
+        intensity_mult: Global energy multiplier
+        temp_offset:   Kelvin offset for color temperature
 
-    * Positions  : scaled linearly then offset by scene_origin.
-                   light_world = (preset_location * scene_scale) + scene_origin
-    * Light sizes: scaled linearly (AREA size/size_y, SPOT radius, POINT softness)
-    * Energy     : scaled by scene_scale² for AREA / SPOT / POINT
-                   (inverse-square law: doubling distance needs 4× power).
-                   SUN energy scales linearly (parallel rays, distance-independent).
-    * Targets    : preset target Vectors are treated as *offsets from origin*
-                   after scaling, so the rig always aims at the object, not
-                   the global axis:
-                   aim_world = (preset_target * scene_scale) + scene_origin
-
-    cycles_energy descriptor key (Opción B dual-calibration)
-    ---------------------------------------------------------
-    If present, overrides ``energy`` for the Cycles/EEVEE path only.
-    LuxCore continues to use ``energy`` × ``luxcore_gain`` as before.
-    The cycles_energy value is also scaled by scene_scale².
+    Light descriptor optional keys handled here:
+        cycles_energy: float — if present, overrides ``energy`` for the
+            Cycles/EEVEE path only (Opción B dual-calibration).  LuxCore
+            continues to use ``energy`` × ``luxcore_gain`` as before.
+            Useful for POINT lights whose LuxCore gain-based brightness
+            does not map linearly to Cycles Watts (e.g. cinematic
+            practicals with luxcore_gain > 1).
 
     Returns:
-        Created bpy.types.Object, or None on failure.
+        Created bpy.types.Object or None on failure.
     """
-    if scene_origin is None:
-        scene_origin = Vector((0.0, 0.0, 0.0))
-    else:
-        scene_origin = Vector(scene_origin)
-    scene_scale = max(0.001, float(scene_scale))
-
     light_type    = descriptor.get("type", "AREA")
     obj_name      = LSM_PREFIX + descriptor.get("name", "Light")
     raw_energy    = max(0.0, float(descriptor.get("energy", 100.0)))
+    actual_energy = raw_energy * max(0.0001, float(intensity_mult))
     gain_mult     = max(0.0001, float(descriptor.get("luxcore_gain", 1.0)))
     kelvin        = descriptor.get("kelvin")
     color_rgb     = descriptor.get("color")
-
-    # Energy scaling:  AREA/SPOT/POINT obey inverse-square → scale²
-    #                  SUN is a directional source → scale linearly
-    energy_scale  = (scene_scale ** 2) if light_type != "SUN" else scene_scale
-    actual_energy = raw_energy * max(0.0001, float(intensity_mult)) * energy_scale
 
     print("[LSM] Creating %s | engine=%s type=%s energy=%.1fW" % (
         obj_name, engine, light_type, actual_energy))
@@ -177,25 +158,21 @@ def create_light(descriptor:    dict,
     # Geometry
     if light_type == "AREA":
         shape = descriptor.get("shape", "RECTANGLE")
-        light_data.shape  = shape
-        light_data.size   = float(descriptor.get("size",  1.0)) * scene_scale
+        light_data.shape = shape
+        light_data.size  = float(descriptor.get("size", 1.0))
         if shape in ("RECTANGLE", "ELLIPSE"):
             light_data.size_y = float(descriptor.get(
-                "size_y", descriptor.get("size", 1.0))) * scene_scale
+                "size_y", descriptor.get("size", 1.0)))
 
     elif light_type == "SPOT":
         light_data.spot_size  = float(descriptor.get("size",       math.radians(30)))
         light_data.spot_blend = float(descriptor.get("spot_blend", 0.15))
-        # spot_size is an angle — not scaled — but soft shadow radius is spatial
-        light_data.shadow_soft_size = float(descriptor.get(
-            "shadow_soft_size", 0.0)) * scene_scale
 
     elif light_type == "SUN":
         light_data.angle = float(descriptor.get("size", 0.009))
-        # SUN angle is angular diameter of the disc — no spatial scaling
 
     elif light_type == "POINT":
-        light_data.shadow_soft_size = float(descriptor.get("size", 0.05)) * scene_scale
+        light_data.shadow_soft_size = float(descriptor.get("size", 0.05))
 
     # Color (linear RGB via Kelvin conversion — used as native Blender color
     # AND as reference for LuxCore when color_mode is not "temperature")
@@ -219,11 +196,10 @@ def create_light(descriptor:    dict,
         bpy.data.lights.remove(light_data)
         return None
 
-    obj.location = Vector(descriptor.get("location", (0.0, 0.0, 3.0))) * scene_scale + scene_origin
+    obj.location = Vector(descriptor.get("location", (0.0, 0.0, 3.0)))
     target = descriptor.get("target")
     if target is not None and light_type != "POINT":
-        aim_world = Vector(target) * scene_scale + scene_origin
-        _look_at(obj, aim_world)
+        _look_at(obj, Vector(target))
 
     # =========================================================================
     # PHASE 2a: LuxCore-specific properties (only when LuxCore is active)
@@ -253,12 +229,10 @@ def create_light(descriptor:    dict,
         # (e.g. POINT practicals with luxcore_gain >> 1.0).
         cycles_energy_raw = descriptor.get("cycles_energy")
         if cycles_energy_raw is not None:
-            cycles_actual = (max(0.0, float(cycles_energy_raw))
-                             * max(0.0001, float(intensity_mult))
-                             * energy_scale)
+            cycles_actual = max(0.0, float(cycles_energy_raw)) * max(0.0001, float(intensity_mult))
             light_data.energy = cycles_actual
-            log.debug("[LSM-CYC] cycles_energy override: %.1fW → %.1fW (×%.3f mult ×%.3f scale²)",
-                      float(cycles_energy_raw), cycles_actual, intensity_mult, energy_scale)
+            log.debug("[LSM-CYC] cycles_energy override: %.1fW → %.1fW (×%.3f mult)",
+                      float(cycles_energy_raw), cycles_actual, intensity_mult)
 
         apply_cycles_light_props(
             light_data  = light_data,
@@ -317,47 +291,33 @@ def remove_lsm_lights(scene) -> int:
 # Full preset application — engine-aware entry point
 # ---------------------------------------------------------------------------
 
-def apply_preset(preset:            dict,
+def apply_preset(preset:           dict,
                  scene,
-                 intensity_mult:    float = 1.0,
-                 temp_offset:       float = 0.0,
-                 clear_existing:    bool  = True,
-                 configure_luxcore: bool  = True,
-                 scene_scale:       float = 1.0,
-                 scene_origin             = None) -> list:
+                 intensity_mult:   float = 1.0,
+                 temp_offset:      float = 0.0,
+                 clear_existing:   bool  = True,
+                 configure_luxcore: bool = True) -> list:
     """Apply a preset to the scene, adapting to the active render engine.
 
     Args:
         preset:            Preset dict from presets_data.PRESETS
         scene:             Target bpy.types.Scene
-        intensity_mult:    Global energy multiplier (preserves inter-light ratios)
+        intensity_mult:    Global energy multiplier (applied to all lights)
         temp_offset:       Kelvin offset for all color temperatures
         clear_existing:    Remove existing LSM_ lights before applying
-        configure_luxcore: Apply render settings (samples, depth, denoiser).
+        configure_luxcore: Apply render settings (samples, depth, denoiser)
                            Works for both LuxCore AND Cycles.
-        scene_scale:       Reference size of the target object in metres.
-                           1.0 = preset defaults (calibrated for ~1 m objects).
-                           Computed by the operator from the active/visible
-                           object bounding box; can also be set manually.
-        scene_origin:      World-space pivot point the rig orbits and aims at.
-                           Typically the centre of the active object's bounding
-                           box. Defaults to Vector((0,0,0)).
 
     Returns:
         List of created light Objects.
     """
-    if scene_origin is None:
-        scene_origin = Vector((0.0, 0.0, 0.0))
-
     engine = detect_engine(scene)
 
     print("[LSM] ═══ Applying: '%s' │ Engine: %s │ Lights: %d │ "
-          "intensity=%.2f  scale=%.3f  origin=(%.2f,%.2f,%.2f)  K_offset=%+.0f ═══" % (
+          "intensity=%.2f K_offset=%+.0f ═══" % (
         preset.get("name", "?"), engine,
         len(preset.get("lights", [])),
-        intensity_mult, scene_scale,
-        scene_origin.x, scene_origin.y, scene_origin.z,
-        temp_offset,
+        intensity_mult, temp_offset,
     ))
 
     if clear_existing:
@@ -369,13 +329,11 @@ def apply_preset(preset:            dict,
     created = []
     for desc in preset.get("lights", []):
         obj = create_light(
-            descriptor     = desc,
-            collection     = collection,
-            engine         = engine,
+            descriptor    = desc,
+            collection    = collection,
+            engine        = engine,
             intensity_mult = intensity_mult,
-            temp_offset    = temp_offset,
-            scene_scale    = scene_scale,
-            scene_origin   = scene_origin,
+            temp_offset   = temp_offset,
         )
         if obj is not None:
             created.append(obj)

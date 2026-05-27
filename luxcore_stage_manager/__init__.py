@@ -8,7 +8,7 @@ bl_info = {
     "version":     (3, 2, 0),
     "blender":     (4, 4, 0),
     "location":    "3D Viewport > N-panel > LightStageManager",
-    "description": "25 professional lighting presets for LuxCore, Cycles and EEVEE",
+    "description": "30 professional lighting presets for LuxCore, Cycles and EEVEE",
     "warning":     "Full LuxCore support requires BlendLuxCore 2.10.1+",
     "doc_url":     "",
     "tracker_url": "",
@@ -47,7 +47,7 @@ def register():
 
     _modules_loaded = True
     print("[Light Stage Manager] v3.2.0 registered"
-          " — 25 presets, LuxCore + Cycles, Blender 4.4+")
+          " — 30 presets, LuxCore + Cycles, Blender 4.4+")
 
 
 def unregister():

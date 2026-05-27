@@ -23,34 +23,9 @@ CYCLES_LIKE_ENGINES = frozenset({
     EEVEE_LEGACY_ID,
 })
 
-# ---------------------------------------------------------------------------
-# Category definitions — single source of truth for the entire addon.
-#
-# Tuple layout: (id, display_name, description, blender_icon, enum_int)
-#
-# Rules:
-#   - "ALL" must be first and have enum_int 0.
-#   - enum_int values must be unique and stable (they are stored in .blend files).
-#   - Adding a new category: append a new tuple and bump the enum_int.
-#   - Never reuse an enum_int that was previously assigned.
-#   - VALID_CATEGORIES and CATEGORY_ICONS are derived automatically;
-#     do NOT define them manually anywhere else in the addon.
-# ---------------------------------------------------------------------------
-
-CATEGORY_DEFS: list = [
-    ("ALL",          "All",           "Show all presets",                                  "LIGHTPROBE_VOLUME", 0),
-    ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                          "OUTLINER_OB_LIGHT", 1),
-    ("PRODUCT",      "Product",       "Product photography setups",                        "CUBE",              2),
-    ("ARCHITECTURE", "Architecture",  "Architectural visualization setups",                "HOME",              3),
-    ("CREATIVE",     "Creative",      "Creative and artistic setups",                      "SHADERFX",          4),
-    ("CINEMATIC",    "Cinematic",     "Film-inspired setups referencing real productions", "SEQUENCE",          5),
-]
-
-# Derived — do not edit manually
-VALID_CATEGORIES: frozenset = frozenset(c[0] for c in CATEGORY_DEFS if c[0] != "ALL")
-CATEGORY_ICONS:   dict      = {c[0]: c[3] for c in CATEGORY_DEFS}
-
+# Valid values
 VALID_LIGHT_TYPES  = frozenset({"AREA", "SPOT", "SUN", "POINT"})
+VALID_CATEGORIES   = frozenset({"PORTRAIT", "PRODUCT", "ARCHITECTURE", "CREATIVE", "CINEMATIC"})
 VALID_AREA_SHAPES  = frozenset({"SQUARE", "RECTANGLE", "DISK", "ELLIPSE"})
 VALID_LXC_ENGINES  = frozenset({"PATH", "BIDIR"})
 VALID_ENV_TYPES    = frozenset({"sky2", "constant"})

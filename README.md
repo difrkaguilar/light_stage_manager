@@ -1,6 +1,6 @@
 # Light Stage Manager
 
-> **25 professional lighting presets for Blender — LuxCore, Cycles and EEVEE**
+> **30 professional lighting presets for Blender — LuxCore, Cycles and EEVEE**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Blender](https://img.shields.io/badge/Blender-4.4%2B-orange.svg)](https://www.blender.org)
@@ -12,7 +12,7 @@
 ## What is Light Stage Manager?
 
 **Light Stage Manager** is a free, open-source Blender addon that gives artists instant access
-to 25 professionally designed lighting setups through a clean N-panel interface.
+to 30 professionally designed lighting setups through a clean N-panel interface.
 
 Instead of spending time placing and tuning lights from scratch on every project, you select
 a category, pick a setup and click **Apply Preset** — lights are created, named and configured
@@ -38,8 +38,8 @@ automatically for the active render engine. The same preset library works in **L
 ## Features
 
 ### Preset Library
-- **25 built-in professional presets** across 4 categories
-- Portrait (8), Product (8), Architecture (5), Creative (4)
+- **30 built-in professional presets** across 5 categories
+- Portrait (8), Product (9), Architecture (5), Creative (4), Cinematic (4)
 - Every preset includes light positions, energies, color temperatures, shapes and render config
 - Schema-validated with `validate_preset()` — safe to extend or import custom presets
 
@@ -60,6 +60,7 @@ automatically for the active render engine. The same preset library works in **L
 
 ### Cycles Integration
 - `light.energy` in Watts — correct scale for Cycles physical units
+- Optional `cycles_energy` override for presets that need a different Cycles brightness than LuxCore
 - AREA `spread = π` (fully diffuse, matching LuxCore default behaviour)
 - Multiple Importance Sampling enabled automatically
 - World/sky: Nishita sky node tree built and connected programmatically
@@ -75,7 +76,7 @@ automatically for the active render engine. The same preset library works in **L
 - **Procedural top-down light-rig diagrams** used as fallback until PNGs are rendered
 
 ### UI (N-panel: LightStageManager tab)
-- Category filter toolbar: All / Portrait / Product / Architecture / Creative
+- Category filter toolbar: All / Portrait / Product / Architecture / Creative / Cinematic
 - UIList with category icons and preset names
 - Inline thumbnail preview (PNG or diagram fallback)
 - Apply button label reflects active engine: `Apply Preset [LuxCore]` / `[Cycles]` / `[EEVEE]`
@@ -83,6 +84,7 @@ automatically for the active render engine. The same preset library works in **L
 - Sub-panels: Preset Info, Light Modifiers, Scene Tools, Preview Thumbnails
 - **Diagnose (Console)** operator: prints `gain`, `color_mode`, `color_temperature`,
   `visibility.camera` for every LSM light — useful for debugging LuxCore property writes
+- **Verify Active Preset (Console)** operator: checks the current LuxCore rig against the active preset
 - Render Properties panel shortcut
 
 ### Code Quality
@@ -112,7 +114,7 @@ automatically for the active render engine. The same preset library works in **L
 | Short Lighting | 3 | Key on far side. Slimming effect, common in masculine portraiture |
 | Film Noir | 2 | Single hard top spot. Extreme contrast, long shadows. Classic noir |
 
-### Product (8)
+### Product (9)
 | Preset | Lights | Description |
 |---|---|---|
 | Product Classic 45° | 3 | 45° front key, soft fill, separation backlight. Most used setup |
@@ -123,6 +125,7 @@ automatically for the active render engine. The same preset library works in **L
 | Studio Three-Point Pro | 3 | Front-side key, soft fill, top accent. Versatile |
 | Jewelry Macro Sparkle | 4 | Multiple small hard sources for gemstone sparkle. High caustic depth |
 | Cosmetic Gradient Beauty | 3 | Enveloping front light for perfumery and cosmetics |
+| Dark Glass Contour | 4 | Edge-controlled highlights for glossy dark bottles and products |
 
 ### Architecture (5)
 | Preset | Lights | Description |
@@ -141,6 +144,14 @@ automatically for the active render engine. The same preset library works in **L
 | Neon RGB Atmosphere | 4 | Blue key, orange fill, cyan rim, purple ground. Cyberpunk/editorial |
 | Candlelight Atmosphere | 3 | Very warm point sources + minimal bounce. Deep darkness |
 
+### Cinematic (4)
+| Preset | Lights | Description |
+|---|---|---|
+| Deakins — Window Natural | 3 | Large motivated window key, soft sky bounce and subtle separation rim |
+| Wong Kar-wai — Amber Night | 3 | Warm practical source with neon accent and saturated colored bounce |
+| Blade Runner 2049 | 3 | Cold ambient blue with aggressive orange neon contrast |
+| A24 — Golden Naturalism | 3 | Late golden-hour sun, cool sky fill and understated ground bounce |
+
 ---
 
 ## Architecture
@@ -156,7 +167,7 @@ luxcore_stage_manager/
 │                          Diagnose, RenderPreviews
 ├── panels.py              Passive UI — draw() is read-only, mutations via update= callbacks
 ├── preferences.py         AddonPreferences + versioned migration system
-├── presets_data.py        25 preset dicts + schema validator + CATEGORIES
+├── presets_data.py        30 preset dicts + schema validator + CATEGORIES
 ├── previews.py            Two-tier preview: PNG loader (tier 1) + procedural diagram (tier 2)
 ├── preview_renderer.py    Standalone headless Blender script for thumbnail rendering
 └── previews/
@@ -237,7 +248,7 @@ Lights are created in a collection `LSM — <Preset Name>`. All objects are pref
 
 1. Go to **Preview Thumbnails** sub-panel → **Render All Previews**
 2. Review the dialog (estimated 3–8 min depending on hardware) and click OK
-3. A headless Blender instance renders all 25 presets in the background
+3. A headless Blender instance renders all 30 presets in the background
 4. Progress appears in **Window → Toggle System Console**
 5. When done the N-panel automatically reloads the PNG thumbnails
 
@@ -246,6 +257,12 @@ Lights are created in a collection `LSM — <Preset Name>`. All objects are pref
 After applying a preset with LuxCore active, use **Scene Tools → Diagnose (Console)**.
 This prints `gain`, `color_mode`, `color_temperature` and `visibility.camera` for every
 LSM light to the System Console — essential for verifying the API wrote correctly.
+
+### Verifying the active LuxCore preset
+
+With **LuxCore** active, use **Scene Tools → Verify Active Preset (Console)** to compare the
+generated LSM lights against the selected preset. The report checks expected gain, temperature,
+color mode, unit and missing/extra lights.
 
 ---
 
@@ -263,7 +280,7 @@ LSM light to the System Console — essential for verifying the API wrote correc
 {
     "id":          "my_preset",
     "name":        "My Preset Name",
-    "category":    "PORTRAIT",          # PORTRAIT|PRODUCT|ARCHITECTURE|CREATIVE
+    "category":    "PORTRAIT",          # PORTRAIT|PRODUCT|ARCHITECTURE|CREATIVE|CINEMATIC
     "description": "What and when.",
     "lights": [
         {
@@ -271,12 +288,13 @@ LSM light to the System Console — essential for verifying the API wrote correc
             "type":     "AREA",         # AREA|SPOT|SUN|POINT
             "location": (2.5, -2.0, 2.2),
             "target":   (0.0, 0.0, 0.85),
-            "energy":   500.0,          # Watts (Cycles); auto-scaled to LuxCore gain
+            "energy":   500.0,          # Blender/Cycles base energy; converted to LuxCore gain
             "kelvin":   5600,           # None = use "color" field
             "size":     1.2,
             "size_y":   1.8,
             "shape":    "RECTANGLE",
             "use_shadow": True,
+            "cycles_energy": 650.0,     # Optional Cycles-only brightness override
         },
     ],
     "env_light": None,
