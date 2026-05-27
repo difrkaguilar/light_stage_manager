@@ -5,7 +5,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Blender](https://img.shields.io/badge/Blender-4.4%2B-orange.svg)](https://www.blender.org)
 [![LuxCore](https://img.shields.io/badge/BlendLuxCore-2.10.1%2B-green.svg)](https://github.com/LuxCoreRender/BlendLuxCore)
-[![Version](https://img.shields.io/badge/version-3.2.0-informational.svg)](https://github.com/difrkaguilar/light-stage-manager/releases)
+[![Version](https://img.shields.io/badge/version-3.3.0-informational.svg)](https://github.com/difrkaguilar/light-stage-manager/releases)
 
 ---
 
@@ -16,8 +16,9 @@ to 30 professionally designed lighting setups through a clean N-panel interface.
 
 Instead of spending time placing and tuning lights from scratch on every project, you select
 a category, pick a setup and click **Apply Preset** — lights are created, named and configured
-automatically for the active render engine. The same preset library works in **LuxCore**,
-**Cycles** and **EEVEE** without any manual adjustment.
+automatically for the active render engine. The rig can also scale and recenter itself around
+the active object, the visible scene, or a manual reference size. The same preset library works
+in **LuxCore**, **Cycles** and **EEVEE** without any manual adjustment.
 
 ---
 
@@ -28,6 +29,8 @@ automatically for the active render engine. The same preset library works in **L
 | Manual light placement on every new project | One-click preset application |
 | Remembering LuxCore gain / unit / temperature API | Handled automatically per engine |
 | Different energy scales between Cycles and LuxCore | Calibrated for both pipelines |
+| A lighting rig framed for a 1 m object breaks on very small or very large scenes | Automatic scale reference recalibrates positions, sizes and power |
+| Presets aimed at the world origin miss the actual subject | Rig origin is derived from the active object, scene bounds, or manual scale |
 | LuxCore `color_mode="temperature"` API changed in v2.10 | Dual-version support (BLC 2.9 + 2.10+) |
 | Light geometry appearing as white shapes in LuxCore renders | `visibility.camera = False` set automatically |
 | No visual reference before applying a setup | Rendered 256x256 thumbnails (Suzanne + SubSurf 3) |
@@ -42,6 +45,13 @@ automatically for the active render engine. The same preset library works in **L
 - Portrait (8), Product (9), Architecture (5), Creative (4), Cinematic (4)
 - Every preset includes light positions, energies, color temperatures, shapes and render config
 - Schema-validated with `validate_preset()` — safe to extend or import custom presets
+
+### Adaptive Placement & Scale
+- Presets are authored around a ~1 m reference subject and adapted at apply time
+- `Scale Reference` modes: `Active Object`, `All Visible`, `Manual`
+- Rig origin is computed from the bounding-box center of the chosen reference
+- Positions, targets and light sizes scale with the subject
+- AREA / SPOT / POINT power scales with distance compensation; SUN scales linearly
 
 ### Dual-Engine Architecture
 - **Auto-detects** active render engine at apply time (`scene.render.engine`)
@@ -60,7 +70,7 @@ automatically for the active render engine. The same preset library works in **L
 
 ### Cycles Integration
 - `light.energy` in Watts — correct scale for Cycles physical units
-- Optional `cycles_energy` override for presets that need a different Cycles brightness than LuxCore
+- Optional `cycles_energy` override when a preset needs a different Cycles brightness than LuxCore
 - AREA `spread = π` (fully diffuse, matching LuxCore default behaviour)
 - Multiple Importance Sampling enabled automatically
 - World/sky: Nishita sky node tree built and connected programmatically
@@ -82,9 +92,10 @@ automatically for the active render engine. The same preset library works in **L
 - Apply button label reflects active engine: `Apply Preset [LuxCore]` / `[Cycles]` / `[EEVEE]`
 - Engine indicator row shows active render engine at a glance
 - Sub-panels: Preset Info, Light Modifiers, Scene Tools, Preview Thumbnails
+- Live scale/origin feedback in Light Modifiers
 - **Diagnose (Console)** operator: prints `gain`, `color_mode`, `color_temperature`,
   `visibility.camera` for every LSM light — useful for debugging LuxCore property writes
-- **Verify Active Preset (Console)** operator: checks the current LuxCore rig against the active preset
+- **Verify Active Preset (Console)** checks expected LuxCore gain, unit, color mode and missing/extra lights
 - Render Properties panel shortcut
 
 ### Code Quality
@@ -125,7 +136,7 @@ automatically for the active render engine. The same preset library works in **L
 | Studio Three-Point Pro | 3 | Front-side key, soft fill, top accent. Versatile |
 | Jewelry Macro Sparkle | 4 | Multiple small hard sources for gemstone sparkle. High caustic depth |
 | Cosmetic Gradient Beauty | 3 | Enveloping front light for perfumery and cosmetics |
-| Dark Glass Contour | 4 | Edge-controlled highlights for glossy dark bottles and products |
+| Dark Glass Contour | 4 | Controlled edge highlights for glossy black bottles and dark products |
 
 ### Architecture (5)
 | Preset | Lights | Description |
@@ -147,10 +158,10 @@ automatically for the active render engine. The same preset library works in **L
 ### Cinematic (4)
 | Preset | Lights | Description |
 |---|---|---|
-| Deakins — Window Natural | 3 | Large motivated window key, soft sky bounce and subtle separation rim |
-| Wong Kar-wai — Amber Night | 3 | Warm practical source with neon accent and saturated colored bounce |
-| Blade Runner 2049 | 3 | Cold ambient blue with aggressive orange neon contrast |
-| A24 — Golden Naturalism | 3 | Late golden-hour sun, cool sky fill and understated ground bounce |
+| Deakins — Window Natural | 3 | Motivated single window key with soft bounce and subtle separation |
+| Wong Kar-wai — Amber Night | 3 | Warm practical source, neon accent and saturated colored bounce |
+| Blade Runner 2049 | 3 | Cold atmospheric blue with strong orange neon contrast |
+| A24 — Golden Naturalism | 3 | Low golden sun, cool sky fill and understated ground bounce |
 
 ---
 
@@ -158,13 +169,13 @@ automatically for the active render engine. The same preset library works in **L
 
 ```
 luxcore_stage_manager/
-├── __init__.py            Entry point, bl_info (v3.2.0), register/unregister
+├── __init__.py            Entry point, bl_info (v3.3.0), register/unregister
 ├── constants.py           Single source of truth: names, engine IDs, gain scales, Kelvin limits
 ├── lxc_compat.py          LuxCore API isolation — dual BLC 2.9/2.10 support, typed proxy classes
 ├── cycles_compat.py       Cycles/EEVEE layer — sky node tree, spread, render config translation
 ├── scene_builder.py       Engine-aware two-phase light creation (Blender → link → engine props)
 ├── operators.py           Atomic operators: Apply, Select, Remove, Reset, SetCategory,
-│                          Diagnose, RenderPreviews
+│                          Diagnose, VerifyActivePreset, RenderPreviews
 ├── panels.py              Passive UI — draw() is read-only, mutations via update= callbacks
 ├── preferences.py         AddonPreferences + versioned migration system
 ├── presets_data.py        30 preset dicts + schema validator + CATEGORIES
@@ -231,9 +242,11 @@ Then enable it in **Edit → Preferences → Add-ons → Lighting: Light Stage M
 2. Filter by category using the toolbar (optional)
 3. Select a preset from the list — the thumbnail and info panel update instantly
 4. Adjust **Intensity** and **Temp Offset** in Light Modifiers (optional)
-5. Click **Apply Preset [Engine]**
+5. Choose **Scale Reference**: `Active Object`, `All Visible`, or `Manual`
+6. Click **Apply Preset [Engine]**
 
 Lights are created in a collection `LSM — <Preset Name>`. All objects are prefixed `LSM_`.
+By default the rig orbits and aims around the detected subject center instead of world origin.
 
 ### Global modifiers
 
@@ -243,6 +256,8 @@ Lights are created in a collection `LSM — <Preset Name>`. All objects are pref
 | Temp Offset (K) | Shifts all color temperatures (e.g. +500K = warmer). Does not affect RGB lights |
 | Clear Existing LSM Lights | Removes current LSM_ lights before applying. Uncheck to layer setups |
 | Auto-configure Render Settings | Applies samples, path depth and denoiser from preset metadata |
+| Scale Reference | Chooses whether scale/origin come from the active object, all visible meshes, or a manual size |
+| Scene Scale (m) | Manual reference diagonal when `Scale Reference = Manual` |
 
 ### Generating preview thumbnails
 
@@ -261,8 +276,8 @@ LSM light to the System Console — essential for verifying the API wrote correc
 ### Verifying the active LuxCore preset
 
 With **LuxCore** active, use **Scene Tools → Verify Active Preset (Console)** to compare the
-generated LSM lights against the selected preset. The report checks expected gain, temperature,
-color mode, unit and missing/extra lights.
+generated LSM lights against the selected preset. The report checks gain, Kelvin, color mode,
+light unit and any missing or extra LSM lights.
 
 ---
 
@@ -286,8 +301,8 @@ color mode, unit and missing/extra lights.
         {
             "name":     "Key",
             "type":     "AREA",         # AREA|SPOT|SUN|POINT
-            "location": (2.5, -2.0, 2.2),
-            "target":   (0.0, 0.0, 0.85),
+            "location": (2.5, -2.0, 2.2),   # Relative to subject origin; auto-scaled at apply time
+            "target":   (0.0, 0.0, 0.85),   # Aim offset from the detected center
             "energy":   500.0,          # Blender/Cycles base energy; converted to LuxCore gain
             "kelvin":   5600,           # None = use "color" field
             "size":     1.2,

@@ -13,18 +13,10 @@ from bpy.props import (
 )
 
 from .presets_data import PRESETS, CATEGORIES
-from .constants import LSM_PREFIX, LUXCORE_ENGINE_ID, CYCLES_ENGINE_ID
+from .constants import LSM_PREFIX, LUXCORE_ENGINE_ID, CYCLES_ENGINE_ID, CATEGORY_ICONS
 
-log = logging.getLogger(__name__)
-
-CAT_ICONS = {
-    "ALL":          "LIGHTPROBE_VOLUME",
-    "PORTRAIT":     "OUTLINER_OB_LIGHT",
-    "PRODUCT":      "CUBE",
-    "ARCHITECTURE": "HOME",
-    "CREATIVE":     "SHADERFX",
-    "CINEMATIC":    "SEQUENCE",
-}
+# CAT_ICONS is no longer defined here — use CATEGORY_ICONS from constants directly.
+CAT_ICONS = CATEGORY_ICONS   # thin alias kept for any future local references
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -80,14 +72,9 @@ class LSM_SceneProperties(PropertyGroup):
 
     active_category: EnumProperty(
         name="Category",
-        items=[
-            ("ALL",          "All",           "Show all presets",                                  "LIGHTPROBE_VOLUME", 0),
-            ("PORTRAIT",     "Portrait",      "Portrait lighting setups",                          "OUTLINER_OB_LIGHT", 1),
-            ("PRODUCT",      "Product",       "Product photography setups",                        "CUBE",              2),
-            ("ARCHITECTURE", "Architecture",  "Architectural visualization",                       "HOME",              3),
-            ("CREATIVE",     "Creative",      "Creative and artistic setups",                      "SHADERFX",          4),
-            ("CINEMATIC",    "Cinematic",     "Film-inspired setups referencing real productions", "SEQUENCE",          5),
-        ],
+        # Single source of truth: constants.CATEGORY_DEFS → presets_data.CATEGORIES.
+        # Adding a new category only requires editing constants.py.
+        items=list(CATEGORIES),
         default="ALL",
         update=_cb_category_changed,
     )
@@ -125,6 +112,37 @@ class LSM_SceneProperties(PropertyGroup):
         name="Show Preview",
         description="Display a preview thumbnail for the selected preset",
         default=True,
+    )
+
+    # --- Scale reference ---
+    scale_reference: bpy.props.EnumProperty(
+        name="Scale Reference",
+        description=(
+            "How to determine the rig scale and orbit centre.\n"
+            "Presets are calibrated for a ~1 m object (Suzanne scale)"
+        ),
+        items=[
+            ("ACTIVE", "Active Object",
+             "Use the active object's bounding box (longest axis + centre).\n"
+             "Recommended: select your hero object before applying"),
+            ("SCENE",  "All Visible",
+             "Use the union bounding box of all visible mesh objects.\n"
+             "Useful when no single object is selected"),
+            ("MANUAL", "Manual",
+             "Enter the reference diagonal manually (metres).\n"
+             "Useful for non-mesh rigs or known real-world dimensions"),
+        ],
+        default="ACTIVE",
+    )
+    manual_scale: bpy.props.FloatProperty(
+        name="Scene Scale (m)",
+        description=(
+            "Reference diagonal in metres used when Scale Reference = Manual.\n"
+            "1.0 = Suzanne  |  4.5 = typical car  |  0.05 = ring/coin"
+        ),
+        default=1.0, min=0.001, max=1000.0, soft_min=0.01, soft_max=50.0,
+        step=10, precision=3,
+        unit="LENGTH",
     )
 
 # ---------------------------------------------------------------------------
@@ -341,19 +359,58 @@ class LSM_PT_LightModifiers(Panel):
 
     def draw(self, context):
         try:
+            from .operators import _compute_scale_and_origin
             layout = self.layout
             props  = context.scene.lsm_props
+
+            # ---- Intensity & temperature ------------------------------------
             col = layout.column(align=True)
+            col.label(text="Lighting Adjustments:", icon="LIGHT")
             col.prop(props, "intensity_multiplier", slider=True)
             col.prop(props, "temperature_offset",   slider=True)
-            layout.separator(factor=0.3)
-            layout.operator("lsm.reset_modifiers",
-                            text="Reset to Defaults", icon="LOOP_BACK")
+            col.separator(factor=0.3)
+            col.operator("lsm.reset_modifiers",
+                         text="Reset to Defaults", icon="LOOP_BACK")
+
+            layout.separator(factor=0.5)
+
+            # ---- Scale reference -------------------------------------------
+            box = layout.box()
+            box.label(text="Scale & Target Reference:", icon="OBJECT_DATA")
+
+            col2 = box.column(align=True)
+            col2.prop(props, "scale_reference", text="")
+            if props.scale_reference == "MANUAL":
+                col2.prop(props, "manual_scale")
+
+            # Live feedback: show what scale/origin will be used
+            try:
+                scale, origin = _compute_scale_and_origin(context)
+                info_col = box.column(align=True)
+                info_col.scale_y = 0.85
+                info_col.label(
+                    text="Scale: %.3f m  |  Origin: (%.1f, %.1f, %.1f)" % (
+                        scale, origin.x, origin.y, origin.z),
+                    icon="INFO")
+
+                # Visual hint about energy scaling
+                if abs(scale - 1.0) > 0.05:
+                    energy_factor = scale ** 2
+                    info_col.label(
+                        text="Energy ×%.1f  |  Sizes ×%.2f" % (
+                            energy_factor * props.intensity_multiplier, scale),
+                        icon="DRIVER_TRANSFORM")
+            except Exception:
+                pass   # context not ready yet (e.g. during registration)
+
             layout.separator(factor=0.4)
-            col2 = layout.column(align=True)
-            col2.label(text="Apply Options:")
-            col2.prop(props, "clear_existing")
-            col2.prop(props, "auto_configure_luxcore")
+
+            # ---- Apply options ---------------------------------------------
+            col3 = layout.column(align=True)
+            col3.label(text="Apply Options:")
+            col3.prop(props, "clear_existing")
+            col3.prop(props, "auto_configure_luxcore")
+
         except Exception as exc:
             log.error("LSM_PT_LightModifiers.draw: %s", exc)
 
