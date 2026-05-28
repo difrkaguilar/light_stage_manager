@@ -119,5 +119,5 @@ class LSM_AddonPreferences(AddonPreferences):
         box.separator()
         box.label(text="Supported engines:", icon="SHADING_RENDERED")
         box.label(text="  ✓ LuxCore (BlendLuxCore 2.10.1+)")
-        box.label(text="  ✓ Cycles (Blender 4.1+)")
+        box.label(text="  ✓ Cycles (Blender 4.4+)")
         box.label(text="  ✓ EEVEE (basic support)")

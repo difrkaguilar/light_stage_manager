@@ -1,6 +1,6 @@
 # Light Stage Manager
 
-> **30 cinematic lighting presets for Blender — LuxCore · Cycles · EEVEE**
+> **34 cinematic lighting presets for Blender — LuxCore · Cycles · EEVEE**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Blender](https://img.shields.io/badge/Blender-4.1%2B-orange.svg)](https://www.blender.org)
@@ -11,7 +11,7 @@
 
 Stop placing lights by hand. Select a lighting direction, click **Apply** — done.
 
-Light Stage Manager gives you 30 professional lighting setups that adapt automatically
+Light Stage Manager gives you 34 professional lighting setups that adapt automatically
 to your render engine, your object size, and your scene. Portrait rigs, product studio
 setups, architectural daylight, creative moods, and film-inspired cinematic looks —
 all calibrated for LuxCore, Cycles and EEVEE with a single click.
@@ -20,65 +20,70 @@ all calibrated for LuxCore, Cycles and EEVEE with a single click.
 
 ## Presets
 
-### 🎬 Cinematic (4)
-Film-inspired setups referencing real production pipelines.
+### 🎬 Cinematic (8)
+Film-inspired setups that reference specific cinematographers and productions.
+Each one has a deliberate intention — not just "looks good" but "looks like *this*".
 
-| Preset | Key references | Lights |
-|---|---|---|
-| **Deakins — Window Natural** | Roger Deakins interior style. Motivated single window, huge soft key, sky bounce fill, subtle rim. No obvious rig | 3 |
-| **Wong Kar-wai — Amber Night** | Warm practical dominant, neon accent, saturated coloured bounce. High emotional contrast | 3 |
-| **Blade Runner 2049** | Cold blue ambient, high-energy orange neon, electric blue rim. Near-zero fill, extreme colour contrast | 3 |
-| **A24 — Golden Naturalism** | Late afternoon sun as sole motivated key, cool sky fill, ground bounce. No artificial sources | 3 |
+| Preset | Mood & intent |
+|---|---|
+| **Deakins — Window Natural** | A single motivated window. The room breathes. Nothing screams "lighting rig". This is what Deakins spent 40 years perfecting: light that looks like it was already there |
+| **Wong Kar-wai — Amber Night** | A practical lamp fights against neon and painted-wall bounce. The scene is emotionally saturated before anything happens. Warm amber dominant, green accent, red fill |
+| **Blade Runner 2049** | Cold blue ambient from an overcast dystopian sky versus a narrow orange neon stripe. Extreme contrast ratio. The colour temperature war is the composition |
+| **A24 — Golden Naturalism** | Late afternoon sun at 3200K, open sky at 10 000K as the counter-key, ground bounce for warmth from below. No rig visible. Relies on global illumination for cohesion — apply with BIDIR |
+| **Kubrick — Overhead Hard** | Surgical overhead SPOT at near-zero fill ratio. The skull shadows are the point. Ghost fill at 1:25 ratio just prevents total crush. Cold blue rim for minimal separation |
+| **Zsigmond — Cold Exterior** | Vilmos Zsigmond's winter palette from The Deer Hunter. Flat overcast grey-blue sky as the dominant source, weak cool sun at low angle. No artificial fill — the sky *is* the fill |
+| **Lubezki — Continuous Window** | One light. One enormous wall-sized window. All fill comes from GI bounce. The most committed single-source setup in the collection. Works best on high-sample BIDIR renders |
+| **Fincher — Controlled** | Precise SPOT with a gobo plane for projected shadow patterns. 1:43 key-to-fill ratio — almost no fill, almost total control. Assign your own B&W texture to the gobo plane material |
 
 ### 🧑 Portrait (8)
-Classic and contemporary portrait rigs. Each setup matches a specific photographic intent.
+Classic and contemporary portrait rigs. Each one solves a specific photographic problem.
 
-| Preset | Description |
+| Preset | When to use it |
 |---|---|
-| **Rembrandt Classic** | Triangle shadow on far cheek. Key 45° lateral-up, soft fill, rear rim |
-| **Butterfly / Paramount** | Classic Hollywood glamour. Front-above key creates butterfly nose shadow |
-| **Loop Lighting** | Key at 30-45°. Small nose shadow. Most versatile commercial portrait setup |
-| **Split Lighting** | 90° side key. Half face lit, half in shadow. High contrast |
-| **Clamshell Beauty** | Top key + chin reflector. Eliminates under-eye shadows. Beauty / fashion |
-| **Broad Lighting** | Key on camera-facing side. Widening, three-dimensional look |
-| **Short Lighting** | Key on far side. Slimming effect, common in masculine portraiture |
-| **Film Noir** | Single hard top spot. Extreme contrast, long shadows |
+| **Rembrandt Classic** | The triangle of light on the far cheek. Commercially useful for anyone who looks better with a slight mystery to them |
+| **Butterfly / Paramount** | Front-above key for the classic Hollywood look. Eliminates under-chin shadows. The go-to for beauty work |
+| **Loop Lighting** | Key at 30-45°. Small nose shadow. The most versatile commercial portrait setup — works for almost any face shape |
+| **Split Lighting** | 90° side key, half the face in shadow. High drama, high contrast. Strong for editorial |
+| **Clamshell Beauty** | Top key + chin reflector. Kills under-eye shadows completely. Fashion and beauty industry standard |
+| **Broad Lighting** | Key on the camera-facing side. Widening and three-dimensional — works against conventional wisdom |
+| **Short Lighting** | Key on the far side. Slimming. Traditionally masculine portraiture |
+| **Film Noir** | Single hard top spot with no fill. Long shadows, high contrast. The shadows tell the story |
 
 ### 📦 Product (9)
-Studio setups for product, e-commerce and automotive photography.
+Studio setups for product, e-commerce, and automotive. Built around specular control.
 
-| Preset | Description |
+| Preset | What it solves |
 |---|---|
-| **Automotive Studio Rig** | Vertical strip lights reveal bodywork curvature. Overhead panel + front key + ground fill simulate white cyclorama |
-| **Product Classic 45°** | 45° front key, soft fill, separation backlight. Most used commercial setup |
-| **Product Clamshell** | Symmetric top/bottom. Jewelry and cosmetics |
-| **Tabletop Sweep** | Large side softbox + bounce fill. Professional e-commerce |
-| **Infinity White** | High-key infinite white background. Catalogue / e-commerce |
-| **Backlit / Translucent** | Strong backlight for bottles and translucent products |
-| **Studio Three-Point Pro** | Front-side key, soft fill, top accent |
-| **Jewelry Macro Sparkle** | Multiple small hard sources for gemstone sparkle. High caustic depth |
-| **Cosmetic Gradient Beauty** | Enveloping front light for perfumery and cosmetics |
+| **Automotive Studio Rig** | Matched vertical strip lights reveal bodywork curvature. The strip specular *is* the design language of the car. Overhead + front key + cyclorama ground fill |
+| **Product Classic 45°** | The most reliable commercial setup. 45° front key, soft fill, separation backlight |
+| **Product Clamshell** | Symmetric top/bottom wrap for jewelry and cosmetics where shadows are unwanted |
+| **Tabletop Sweep** | Large side softbox + bounce fill for e-commerce. Clean, directional, scalable |
+| **Infinity White** | High-key infinite white. Catalogue standard. Everything needs to render on white eventually |
+| **Backlit / Translucent** | Strong backlight for bottles, glasses, anything that reveals its material when lit from behind |
+| **Studio Three-Point Pro** | The reliable workhorse. Front-side key, soft fill, top accent. Never wrong |
+| **Jewelry Macro Sparkle** | Multiple small hard sources that make gemstones fire. Caustics-heavy — needs BIDIR |
+| **Cosmetic Gradient Beauty** | Enveloping front light for packaging and perfumery. The product glows without a visible source |
 
 ### 🏛️ Architecture (5)
-Interior and exterior lighting for architectural visualization.
+Interior and exterior lighting for architectural visualization and spatial rendering.
 
-| Preset | Description |
+| Preset | Character |
 |---|---|
-| **Interior Daylight** | Sun + sky area + interior fill. Natural side window light |
-| **Interior Night Artificial** | Warm pendants + cool accent. Intimate atmosphere |
-| **Exterior Golden Hour** | Low warm sun + cool sky fill. Long shadows |
-| **Exterior Overcast** | Diffuse overcast sky. No hard shadows. Clean arch-viz |
-| **Window Natural Minimal** | Single window as sole source. Minimalist photorealism |
+| **Interior Daylight** | Sun + sky area + interior fill. Side window as the spatial anchor |
+| **Interior Night Artificial** | Warm pendants + cool accent. The room feels inhabited |
+| **Exterior Golden Hour** | Low warm sun, long shadows, cool sky counter-key |
+| **Exterior Overcast** | Flat diffuse overcast. No hard shadows, clean surfaces. The architect's preferred light |
+| **Window Natural Minimal** | One window as the only source. Spatial clarity through restraint |
 
 ### 🎨 Creative (4)
-Atmospheric and editorial setups for stylized rendering.
+Atmospheric and editorial setups for anything that doesn't want to look like a product shot.
 
-| Preset | Description |
+| Preset | Character |
 |---|---|
-| **Moody Drama** | Hard front-side spot, no fill. Deep shadows and dark atmosphere |
-| **High Key Ethereal** | No visible shadows. Cold wrap softboxes. Fashion / conceptual |
-| **Neon RGB Atmosphere** | Blue key, orange fill, cyan rim. Cyberpunk / editorial |
-| **Candlelight Atmosphere** | Very warm point sources + minimal bounce. Deep darkness |
+| **Moody Drama** | Hard front-side spot with no fill. Deep shadows. The light has opinions |
+| **High Key Ethereal** | No visible shadows. Cold wrap softboxes. Exists somewhere between beauty and concept |
+| **Neon RGB Atmosphere** | Blue key, orange fill, cyan rim. Cyberpunk without apology |
+| **Candlelight Atmosphere** | Very warm point practicals + minimal bounce. The darkness matters as much as the light |
 
 ---
 
@@ -109,30 +114,27 @@ The panel shows the computed scale and the resulting energy multiplier before yo
 so you always know what will happen.
 
 ### Global adjustments
-After applying, two sliders let you fine-tune the whole rig without touching individual lights:
+After applying, three controls let you fine-tune the whole rig without touching individual lights:
 
 | Control | Effect |
 |---|---|
 | **Intensity** | Multiplies all light energies proportionally — ratios between lights are preserved |
 | **Temp Offset (K)** | Shifts all colour temperatures. +500 K = warmer overall. Does not affect RGB lights |
-| **Fill Ratio** | Adjusts in-scene fill and rim energy relative to the key light without re-applying the preset |
+| **Gel** | Applies a named cinematographic colour gel to all lights. Multiplies over the resolved colour — works with both kelvin and RGB sources |
 
-`Fill Ratio` is live: `1.0` keeps fill equal to key, `0.5` gives a classic 2:1 ratio,
-and `0.0` removes fill for a more dramatic look. Rim lights track at half the fill ratio.
+**20 named gels included:**
 
-### User presets
-You can turn any rig already in the scene into a reusable preset:
+| Category | Gels |
+|---|---|
+| Tungsten / Warm | Tungsten Warm · Amber Deep · Straw |
+| Daylight / Cool | CTB Full · CTB Half · Sky Blue · Ice Blue |
+| Cinematic palettes | Fincher Green · Kubrick Cold · Lubezki Warm · WKW Amber · WKW Neon Green · BR2049 Orange · BR2049 Blue |
+| Special effects | Lavender · Rose · Plus Green · Minus Green · Fire / Explosion |
 
-1. Apply or build a lighting rig with `LSM_` lights
-2. Open **Scene Tools**
-3. Click **Save Rig as Preset**
-4. Choose name, category and description
-
-User presets are stored in `user_presets.json`, reloaded automatically on startup, and
-shown in the preset list with a star marker so they stand out from built-in presets.
+Gels can also be applied per-light via a `"gel"` key in a preset descriptor, which takes priority over the global gel selector.
 
 ### Asset Browser integration
-All 30 presets are available directly from Blender's **Asset Browser** with full preview
+All 34 presets are available directly from Blender's **Asset Browser** with full preview
 thumbnails and category filtering — no N-panel required.
 
 **One-time setup:**
@@ -145,9 +147,6 @@ thumbnails and category filtering — no N-panel required.
 
 After setup, click any preset in the Asset Browser — the sidebar panel shows the preset
 details and a one-click **Apply Preset** button.
-
-The addon generates an `LSM_Assets.blend` library containing one **World** asset per preset,
-with stable catalog IDs, description metadata, category tags, engine tags and light-count tags.
 
 ---
 
@@ -173,6 +172,10 @@ switching between LuxCore and Cycles.
 Point lights with high LuxCore `gain` (e.g. candlelight, WKW practicals) carry a separate
 `cycles_energy` value. LuxCore uses `energy × gain`; Cycles uses `cycles_energy` directly.
 This prevents practicals from rendering near-black in Cycles.
+
+### Gels and gobos
+- **20 named gels** are available globally from the panel and per-light through the `"gel"` descriptor key.
+- SPOT lights can define a `"gobo"` descriptor that creates a shadow-casting plane for projected pattern work, used by presets such as **Fincher — Controlled**.
 
 ---
 
@@ -210,8 +213,9 @@ Copy-Item -Recurse light-stage-manager\luxcore_stage_manager `
 ```
 luxcore_stage_manager/
 ├── __init__.py            Entry point, bl_info (v3.4.0), register/unregister
+├── blender_manifest.toml  Blender Extensions Platform metadata (Blender 4.2+)
 ├── constants.py           Single source of truth: CATEGORY_DEFS, engine IDs,
-│                          gain scales, Kelvin limits. All other modules derive
+│                          gel presets, gain scales, Kelvin limits. All other modules derive
 │                          from here — no hardcoded category strings elsewhere.
 ├── lxc_compat.py          LuxCore API isolation — dual BLC 2.9/2.10 support,
 │                          LuxCoreLightProxy + LuxCoreWorldProxy typed classes
@@ -230,17 +234,16 @@ luxcore_stage_manager/
 │                          Asset Library generation button and setup guide
 ├── asset_builder.py       Generates LSM_Assets.blend with World assets.
 │                          Stable catalog UUIDs, PNG thumbnails, color placeholders.
-├── presets_data.py        30 preset dicts + validate_preset() + CATEGORIES alias
+├── presets_data.py        34 preset dicts + validate_preset() + CATEGORIES alias
 │                          (authoritative data lives in constants.CATEGORY_DEFS)
 ├── previews.py            Two-tier preview: PNG loader → procedural diagram fallback
 ├── preview_renderer.py    Standalone headless Blender script for thumbnail rendering
-├── user_presets.json      Generated on demand when the user saves custom presets
 ├── assets/
 │   ├── LSM_Assets.blend          Generated by the addon (not in repo)
 │   └── blender_assets.cats.txt   Catalog with stable UUIDs for Asset Browser
 └── previews/
     ├── README.txt
-    ├── rembrandt.png             256×256 rendered thumbnails — 30 PNGs included in repo
+    ├── rembrandt.png             256×256 rendered thumbnails — 34 PNGs included
     └── ...                       (Cycles render of Suzanne under each preset)
 ```
 

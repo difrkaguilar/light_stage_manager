@@ -8,12 +8,15 @@ bl_info = {
     "version":     (3, 4, 0),
     "blender":     (4, 1, 0),
     "location":    "3D Viewport > N-panel > LightStageManager  |  Asset Browser",
-    "description": "30 professional lighting presets for LuxCore, Cycles and EEVEE. Asset Browser ready.",
+    "description": "34 cinematic lighting presets for LuxCore, Cycles and EEVEE. Asset Browser ready.",
     "warning":     "Full LuxCore support requires BlendLuxCore 2.10.1+",
     "doc_url":     "",
     "tracker_url": "",
     "category":    "Lighting",
 }
+# Note: blender_manifest.toml provides richer metadata for the
+# Blender Extensions Platform (Blender 4.2+). bl_info is kept for
+# backwards compatibility with Blender 4.1 and older addon installers.
 
 import logging
 log = logging.getLogger(__name__)
@@ -47,7 +50,7 @@ def register():
 
     _modules_loaded = True
     print("[Light Stage Manager] v3.4.0 registered"
-          " — 30 presets, LuxCore + Cycles, Blender 4.1+, Asset Browser ready")
+          " — 34 presets, LuxCore + Cycles, 20 gels, Blender 4.1+, Asset Browser ready")
 
 
 def unregister():

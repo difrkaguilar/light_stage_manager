@@ -55,6 +55,53 @@ VALID_AREA_SHAPES  = frozenset({"SQUARE", "RECTANGLE", "DISK", "ELLIPSE"})
 VALID_LXC_ENGINES  = frozenset({"PATH", "BIDIR"})
 VALID_ENV_TYPES    = frozenset({"sky2", "constant", "hdri"})
 
+# ---------------------------------------------------------------------------
+# Gel presets — named colour vocabulary for cinematographic lighting.
+#
+# Each entry: (id, display_name, description, (R, G, B) linear)
+#
+# Rules:
+#   - Colors are in linear (scene-linear) space, not sRGB.
+#   - "None" id is the neutral entry (no gel applied).
+#   - Adding a new gel: append a tuple, nothing else needs editing.
+#   - IDs are stable — used in user presets serialisation.
+# ---------------------------------------------------------------------------
+
+GEL_PRESETS: list = [
+    # id                  display name              description                          R      G      B
+    ("none",              "No Gel",                 "No colour correction",              1.000, 1.000, 1.000),
+    # ---- Tungsten / warm ----
+    ("tungsten_warm",     "Tungsten Warm",          "Classic incandescent lamp orange",  1.000, 0.420, 0.080),
+    ("amber_deep",        "Amber Deep",             "Deep amber — campfire, sunset",     1.000, 0.280, 0.030),
+    ("straw",             "Straw",                  "Pale straw — practicals, oldfilm",  1.000, 0.780, 0.320),
+    # ---- Daylight / cool ----
+    ("ctb_full",          "CTB Full",               "Full colour temp blue — 3200→5600K",0.380, 0.580, 1.000),
+    ("ctb_half",          "CTB Half",               "½ CTB — subtle cool correction",   0.620, 0.780, 1.000),
+    ("sky_blue",          "Sky Blue",               "Open sky fill, exterior shadows",   0.300, 0.500, 1.000),
+    ("ice_blue",          "Ice Blue",               "Cold winter, clinical, sci-fi",     0.200, 0.380, 1.000),
+    # ---- Cinematic palettes ----
+    ("fincher_green",     "Fincher Green",          "Desaturated sickly green — Seven, Zodiac",
+                                                                                         0.340, 0.720, 0.340),
+    ("kubrick_cold",      "Kubrick Cold",           "Institutional cold-white overhead", 0.700, 0.800, 1.000),
+    ("lubezki_warm",      "Lubezki Warm",           "Diffuse window gold — The Revenant",0.980, 0.860, 0.680),
+    ("wkw_amber",         "WKW Amber",              "Wong Kar-wai deep amber practical", 1.000, 0.380, 0.080),
+    ("wkw_neon_green",    "WKW Neon Green",         "Wong Kar-wai cyan-green neon",      0.100, 0.800, 0.550),
+    ("br2049_orange",     "BR2049 Orange",          "Blade Runner 2049 neon accent",     1.000, 0.300, 0.040),
+    ("br2049_blue",       "BR2049 Blue",            "Blade Runner 2049 cold ambient",    0.080, 0.180, 0.550),
+    # ---- Special effects ----
+    ("lavender",          "Lavender",               "Soft purple fill — fantasy, beauty",0.680, 0.480, 1.000),
+    ("rose",              "Rose",                   "Warm-pink beauty fill",             1.000, 0.480, 0.580),
+    ("plus_green",        "Plus Green",             "Fluorescent correction / horror",   0.300, 1.000, 0.300),
+    ("minus_green",       "Minus Green",            "Minus green / magenta correction",  1.000, 0.200, 0.600),
+    ("fire_orange",       "Fire / Explosion",       "Practical fire, explosion effect",  1.000, 0.200, 0.020),
+]
+
+# Fast lookup: id → (R, G, B)   — tuple layout: (id, name, desc, R, G, B)
+GEL_COLORS: dict = {g[0]: (g[3], g[4], g[5]) for g in GEL_PRESETS}
+
+# EnumProperty items format: (id, display_name, description)
+GEL_ENUM_ITEMS: list = [(g[0], g[1], g[2]) for g in GEL_PRESETS]
+
 # Kelvin
 KELVIN_MIN     = 1000.0
 KELVIN_MAX     = 40000.0    # for Blender native color conversion

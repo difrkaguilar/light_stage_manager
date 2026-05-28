@@ -13,7 +13,10 @@ from bpy.props import (
 )
 
 from .presets_data import PRESETS, CATEGORIES
-from .constants import LSM_PREFIX, LUXCORE_ENGINE_ID, CYCLES_ENGINE_ID, CATEGORY_ICONS
+from .constants import (
+    LSM_PREFIX, LUXCORE_ENGINE_ID, CYCLES_ENGINE_ID,
+    CATEGORY_ICONS, GEL_ENUM_ITEMS,
+)
 
 # CAT_ICONS is no longer defined here — use CATEGORY_ICONS from constants directly.
 CAT_ICONS = CATEGORY_ICONS   # thin alias kept for any future local references
@@ -97,6 +100,17 @@ class LSM_SceneProperties(PropertyGroup):
         description="Kelvin offset added to every color temperature in the preset",
         default=0.0, min=-5000.0, max=5000.0, soft_min=-1500.0, soft_max=1500.0,
         step=100, precision=0,
+    )
+
+    gel_preset: bpy.props.EnumProperty(
+        name="Gel",
+        description=(
+            "Apply a named colour gel to all lights in the preset.\n"
+            "Multiplies the resolved light colour — works with both kelvin and RGB sources.\n"
+            "Use per-light 'gel' key in a descriptor to override individually."
+        ),
+        items=GEL_ENUM_ITEMS,
+        default="none",
     )
     clear_existing: BoolProperty(
         name="Clear Existing LSM Lights",
@@ -393,6 +407,18 @@ class LSM_PT_LightModifiers(Panel):
             col.label(text="Lighting Adjustments:", icon="LIGHT")
             col.prop(props, "intensity_multiplier", slider=True)
             col.prop(props, "temperature_offset",   slider=True)
+
+            # Gel selector
+            col.separator(factor=0.3)
+            gel_row = col.row(align=True)
+            gel_row.prop(props, "gel_preset", text="Gel", icon="COLORSET_13_VEC")
+            if props.gel_preset != "none":
+                # Show a coloured dot to preview the gel tint
+                from .constants import GEL_COLORS
+                gc = GEL_COLORS.get(props.gel_preset, (1, 1, 1))
+                # Blender can't draw arbitrary color swatches in a row easily,
+                # so we show the gel name as a label with the icon as hint
+                gel_row.label(text="", icon="MATFLUID")
 
             # Fill ratio — only shown when LSM lights are in the scene
             lsm_lights = [o for o in context.scene.objects

@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Blender Extensions Platform manifest — https://extensions.blender.org
+# Compatible with Blender 4.2+ extension system.
+# The legacy bl_info dict in __init__.py is kept for Blender < 4.2 compatibility.
+
+schema_version = "1.0.0"
+
+id       = "light_stage_manager"
+name     = "Light Stage Manager"
+tagline  = "34 cinematic lighting presets — LuxCore · Cycles · EEVEE. Asset Browser ready."
+version  = "3.4.0"
+type     = "add-on"
+
+maintainer = "difrkaguilar <difrkaguilar@users.noreply.github.com>"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+category = "Lighting"
+
+tags = [
+    "Lighting",
+    "Compositing",
+]
+
+[permissions]
+files = "Reads and writes preset data and generates an asset library file in its own addon directory."

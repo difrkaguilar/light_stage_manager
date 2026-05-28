@@ -208,6 +208,32 @@ def create_light(descriptor:    dict,
     else:
         light_data.color = (1.0, 1.0, 1.0)
 
+    # Gel tint: multiply the resolved color by the gel RGB.
+    # Gel is read from the descriptor first (per-light override),
+    # then from the scene property (global rig tint).
+    gel_id = descriptor.get("gel")
+    if gel_id is None:
+        # Check scene-level gel property (set via the panel slider)
+        try:
+            import bpy as _bpy
+            scene_gel = _bpy.context.scene.lsm_props.gel_preset
+            if scene_gel and scene_gel != "none":
+                gel_id = scene_gel
+        except Exception:
+            pass
+
+    if gel_id and gel_id != "none":
+        from .constants import GEL_COLORS
+        gel_rgb = GEL_COLORS.get(gel_id)
+        if gel_rgb:
+            cur = light_data.color
+            light_data.color = (
+                cur[0] * gel_rgb[0],
+                cur[1] * gel_rgb[1],
+                cur[2] * gel_rgb[2],
+            )
+            log.debug("[LSM] Gel '%s' applied to %s", gel_id, obj_name)
+
     # =========================================================================
     # PHASE 2: Link object to scene — REQUIRED before setting LuxCore props
     # =========================================================================
@@ -276,12 +302,151 @@ def create_light(descriptor:    dict,
         # Note: Cycles does not need visible_to_camera suppression —
         # Cycles light objects are never visible as meshes in the render.
 
+    # =========================================================================
+    # GOBO PLANE — optional, SPOT lights only
+    # =========================================================================
+    # Must be created after the light object is linked and positioned so
+    # _create_gobo_plane can read light_obj.matrix_world correctly.
+    gobo_cfg = descriptor.get("gobo")
+    if gobo_cfg and light_type == "SPOT":
+        _create_gobo_plane(
+            light_obj  = obj,
+            gobo_cfg   = gobo_cfg,
+            collection = collection,
+            engine     = engine,
+            scene_scale = scene_scale,
+        )
+
     return obj
 
 
 # ---------------------------------------------------------------------------
-# Scene management
+# Gobo plane helper
 # ---------------------------------------------------------------------------
+
+def _create_gobo_plane(light_obj, gobo_cfg: dict, collection,
+                       engine: str, scene_scale: float) -> object:
+    """Create a shadow-casting gobo plane in front of a SPOT light.
+
+    The plane is a physical mesh that blocks some light rays, simulating
+    a gobo (pattern projector) in front of the light. Users assign their
+    own B&W texture to the material to control the shadow pattern.
+
+    The material is set up so:
+    - Cycles: Transparent BSDF controlled by image texture alpha + Alpha Clip
+              shadow mode. The plane is invisible to camera rays.
+    - LuxCore: Glass material with absorption texture — approximates the
+               blocking effect. Invisible to camera via visibility settings.
+    - EEVEE:   Same as Cycles setup; shadow quality depends on EEVEE settings.
+
+    Args:
+        light_obj:  The SPOT light Object the gobo belongs to.
+        gobo_cfg:   Dict from the "gobo" key in the light descriptor.
+                    Keys: size (float, metres), distance (float, metres from light),
+                          texture ("checker"|"stripes"|"dots") for the placeholder.
+        collection: Blender collection to link into.
+        engine:     "LUXCORE"|"CYCLES"|"OTHER"
+        scene_scale: Current scene scale multiplier.
+
+    Returns:
+        Created gobo Object, or None on failure.
+    """
+    import mathutils
+
+    size      = float(gobo_cfg.get("size",     0.4)) * scene_scale
+    distance  = float(gobo_cfg.get("distance", 0.3)) * scene_scale
+    tex_type  = gobo_cfg.get("texture", "checker")
+    plane_name = LSM_PREFIX + "Gobo_" + light_obj.name.replace(LSM_PREFIX, "", 1)
+
+    try:
+        # ---- Mesh: 1×1 plane scaled to size ---------------------------------
+        mesh = bpy.data.meshes.new(plane_name)
+        h    = size / 2.0
+        verts = [(-h, -h, 0), (h, -h, 0), (h, h, 0), (-h, h, 0)]
+        faces = [(0, 1, 2, 3)]
+        mesh.from_pydata(verts, [], faces)
+        mesh.update()
+
+        plane_obj = bpy.data.objects.new(plane_name, mesh)
+        collection.objects.link(plane_obj)
+
+        # ---- Position: in front of the light along its -Z local axis --------
+        fwd       = light_obj.matrix_world.to_3x3() @ mathutils.Vector((0.0, 0.0, -1.0))
+        plane_obj.location = light_obj.location + fwd * distance
+        plane_obj.rotation_euler = light_obj.rotation_euler.copy()
+
+        # Store metadata
+        plane_obj["lsm_role"]      = "gobo"
+        plane_obj["lsm_preset_id"] = light_obj.get("lsm_preset_id", "")
+
+        # ---- Material -------------------------------------------------------
+        mat = bpy.data.materials.new(name=plane_name + "_Mat")
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+        nodes.clear()
+
+        # Output
+        out  = nodes.new("ShaderNodeOutputMaterial")
+
+        # Placeholder texture — procedural so no external file needed
+        tex  = nodes.new("ShaderNodeTexChecker")   # replaced by user's own texture
+        if tex_type == "stripes":
+            tex  = nodes.new("ShaderNodeTexWave")
+            tex.wave_type = "BANDS"
+        elif tex_type == "dots":
+            tex  = nodes.new("ShaderNodeTexVoronoi")
+        tex.location = (-400, 100)
+
+        coord = nodes.new("ShaderNodeTexCoord")
+        coord.location = (-600, 100)
+        links.new(coord.outputs["UV"], tex.inputs[0])
+
+        # Mix: texture controls transparency
+        mix  = nodes.new("ShaderNodeMixShader")
+        mix.location = (-100, 0)
+
+        transp = nodes.new("ShaderNodeBsdfTransparent")
+        transp.location = (-300, 100)
+
+        diffuse = nodes.new("ShaderNodeBsdfDiffuse")
+        diffuse.inputs["Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+        diffuse.location = (-300, -100)
+
+        # Texture fac → mix (0 = transparent, 1 = opaque/black)
+        tex_out = tex.outputs.get("Color") or tex.outputs[0]
+        links.new(tex_out, mix.inputs["Fac"])
+        links.new(transp.outputs["BSDF"],  mix.inputs[1])
+        links.new(diffuse.outputs["BSDF"], mix.inputs[2])
+        links.new(mix.outputs["Shader"],   out.inputs["Surface"])
+
+        # Shadow mode: cast shadows based on alpha, invisible to camera
+        mat.shadow_method       = "CLIP"   # Cycles / EEVEE
+        mat.blend_method        = "CLIP"
+        mat.alpha_threshold     = 0.5
+
+        plane_obj.data.materials.append(mat)
+
+        # Hide from camera (shadows only)
+        plane_obj.visible_camera      = False
+        plane_obj.visible_diffuse     = False
+        plane_obj.visible_glossy      = False
+        plane_obj.visible_transmission = False
+        plane_obj.visible_shadow      = True    # only shadow rays see this plane
+
+        # LuxCore: mark invisible to camera via luxcore visibility
+        if engine == "LUXCORE":
+            from .lxc_compat import apply_lxc_object_visibility
+            apply_lxc_object_visibility(plane_obj, visible_to_camera=False)
+
+        log.debug("[LSM] Gobo plane created: %r  size=%.3f  dist=%.3f  tex=%s",
+                  plane_name, size, distance, tex_type)
+        return plane_obj
+
+    except Exception as exc:
+        log.error("[LSM] _create_gobo_plane failed for %r: %s",
+                  light_obj.name, exc)
+        return None
 
 def _remove_empty_lsm_collections(scene) -> None:
     """Remove empty LSM collections left behind after deleting generated lights."""

@@ -1805,33 +1805,30 @@ PRESETS = [
             "No obvious rig. Relies on global illumination for cohesion."
         ),
         "lights": [
-            # Late afternoon sun: low angle, very warm, single motivated source
             {
                 "name": "Sun_Late",
                 "type": "SUN",
                 "location": (6.0, -2.0, 1.8),
                 "target": (0.0, 0.0, 0.0),
                 "energy": 3.2,
-                "kelvin": 3200,   # deepest golden-hour warmth
+                "kelvin": 3200,
                 "size": 0.08,
                 "use_shadow": True,
                 "luxcore_gain": 1.0,
             },
-            # Open sky fill: large, cool, low energy — the natural counter-key
             {
                 "name": "Sky_Soft",
                 "type": "AREA",
                 "location": (0.0, -1.0, 7.0),
                 "target": (0.0, 0.0, 0.5),
                 "energy": 60.0,
-                "kelvin": 10000,   # sky blue (within LuxCore 12 000 K cap)
+                "kelvin": 10000,
                 "size": 8.0,
                 "size_y": 8.0,
                 "shape": "RECTANGLE",
                 "use_shadow": False,
                 "luxcore_gain": 1.0,
             },
-            # Ground bounce: warm earth tone from below, subtle detail in shadows
             {
                 "name": "Ground_Bounce",
                 "type": "AREA",
@@ -1847,8 +1844,218 @@ PRESETS = [
             },
         ],
         "env_light": {"type": "sky2", "turbidity": 2.5, "gain": 0.015},
-        # BIDIR + high samples: A24 naturalism is born from global illumination
         "luxcore_cfg": {"engine": "BIDIR", "path_depth": 14, "halt_samples": 1000, "denoiser": True},
+    },
+
+    # =========================================================================
+    # CINEMATIC — new batch
+    # =========================================================================
+
+    {
+        "id": "cin_kubrick",
+        "name": "Kubrick — Overhead Hard",
+        "category": "CINEMATIC",
+        "description": (
+            "Stanley Kubrick hard overhead style. "
+            "Single hard SPOT from directly above, cold palette, deep fill shadow. "
+            "Characteristic skull-cavity shadows. "
+            "Optional side rim for minimal separation."
+        ),
+        "lights": [
+            # Hard overhead: the Kubrick signature — almost surgical, straight down
+            {
+                "name": "Overhead_Hard",
+                "type": "SPOT",
+                "role": "key",
+                "location": (0.0, 0.0, 3.8),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 700.0,
+                "kelvin": 5800,
+                "size": 0.38,           # ~22° beam angle
+                "spot_blend": 0.03,     # very sharp cutoff
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Ghost fill: barely perceptible, just lifts the deepest shadows
+            {
+                "name": "Fill_Ghost",
+                "type": "AREA",
+                "role": "fill",
+                "location": (2.5, -2.5, 1.5),
+                "target": (0.0, 0.0, 0.9),
+                "energy": 28.0,         # ~1:25 key:fill ratio
+                "kelvin": 6800,         # slightly cooler than key
+                "size": 2.0,
+                "size_y": 2.5,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+            # Cold side rim: separates from black background
+            {
+                "name": "Rim_Cold",
+                "type": "AREA",
+                "role": "rim",
+                "location": (-2.0, 2.0, 2.5),
+                "target": (0.0, 0.0, 1.0),
+                "energy": 80.0,
+                "kelvin": None,
+                "color": (0.5, 0.65, 1.0),  # cold blue rim
+                "size": 0.4,
+                "size_y": 2.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "constant", "gain": 0.00005, "color": (0.6, 0.65, 0.7)},
+        "luxcore_cfg": {"engine": "PATH", "path_depth": 8, "halt_samples": 400, "denoiser": True},
+    },
+
+    {
+        "id": "cin_zsigmond_cold",
+        "name": "Zsigmond — Cold Exterior",
+        "category": "CINEMATIC",
+        "description": (
+            "Vilmos Zsigmond / Deer Hunter cold naturalism. "
+            "Flat winter overcast sky. Desaturated, cold palette. "
+            "Long soft shadows from low lateral sun. "
+            "No fill — the sky IS the fill. Requires BIDIR for correct diffuse interreflection."
+        ),
+        "lights": [
+            # Winter sun: low angle, cool and weak — barely warmer than the sky
+            {
+                "name": "Sun_Winter",
+                "type": "SUN",
+                "role": "key",
+                "location": (5.0, -3.0, 1.2),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 1.8,
+                "kelvin": 4800,         # cool, not golden — winter overcast sun
+                "size": 0.15,           # slightly softened disc
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Overcast sky dome: the dominant source — flat, directionless
+            {
+                "name": "Sky_Overcast",
+                "type": "AREA",
+                "role": "fill",
+                "location": (0.0, 0.0, 8.0),
+                "target": (0.0, 0.0, 0.0),
+                "energy": 90.0,
+                "kelvin": 8500,         # blue-grey winter sky
+                "size": 10.0,
+                "size_y": 10.0,
+                "shape": "RECTANGLE",
+                "use_shadow": False,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "sky2", "turbidity": 6.5, "gain": 0.012},
+        # BIDIR: exterior with high-turbidity overcast sky, diffuse bounce is critical
+        "luxcore_cfg": {"engine": "BIDIR", "path_depth": 10, "halt_samples": 800, "denoiser": True},
+    },
+
+    {
+        "id": "cin_lubezki_window",
+        "name": "Lubezki — Continuous Window",
+        "category": "CINEMATIC",
+        "description": (
+            "Emmanuel Lubezki single-source philosophy. "
+            "One enormous, featureless window. No fill, no rim, no rig. "
+            "Light wraps naturally from global illumination. "
+            "The purest available-light setup in the collection. "
+            "Needs a well-lit scene — works best with BIDIR and high samples."
+        ),
+        "lights": [
+            # The only source: a wall-sized window
+            # Very large, very soft, very close — the Lubezki signature
+            {
+                "name": "Window_Wall",
+                "type": "AREA",
+                "role": "key",
+                "location": (-4.0, 0.0, 1.5),
+                "target": (0.0, 0.0, 0.85),
+                "energy": 320.0,
+                "kelvin": 5400,
+                "size": 3.5,
+                "size_y": 3.0,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "sky2", "turbidity": 3.0, "gain": 0.005},
+        # BIDIR essential: single source, all fill must come from GI bounce
+        "luxcore_cfg": {"engine": "BIDIR", "path_depth": 16, "halt_samples": 1200, "denoiser": True},
+    },
+
+    {
+        "id": "cin_fincher",
+        "name": "Fincher — Controlled",
+        "category": "CINEMATIC",
+        "description": (
+            "David Fincher precise control. "
+            "Hard SPOT with gobo plane for projected shadow patterns. "
+            "Cold, desaturated palette. Near-zero fill. "
+            "Assign a B&W texture to the LSM_Gobo_ plane material to project patterns "
+            "(venetian blinds, grids, leaves). Replace the placeholder checker with your own."
+        ),
+        "lights": [
+            # Primary key: hard, precise, never diffuse
+            {
+                "name": "Key_Precise",
+                "type": "SPOT",
+                "role": "key",
+                "location": (2.2, -1.8, 3.2),
+                "target": (0.0, 0.0, 0.8),
+                "energy": 650.0,
+                "kelvin": 5600,
+                "size": 0.38,           # ~22°
+                "spot_blend": 0.04,     # sharp but not perfectly hard
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+                # Gobo plane positioned between light and subject
+                "gobo": {
+                    "size":     0.5,           # plane size in metres (at scene_scale=1)
+                    "distance": 0.35,          # distance from light head
+                    "texture":  "checker",     # placeholder; user replaces
+                },
+            },
+            # Top edge: secondary hard light, hairline separation
+            {
+                "name": "Top_Edge",
+                "type": "SPOT",
+                "role": "rim",
+                "location": (-0.3, 0.0, 3.8),
+                "target": (0.0, 0.0, 1.0),
+                "energy": 280.0,
+                "kelvin": 6200,
+                "size": 0.26,           # ~15°
+                "spot_blend": 0.06,
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+            # Fill phantom: barely there, just prevents total crush
+            {
+                "name": "Fill_Phantom",
+                "type": "AREA",
+                "role": "fill",
+                "location": (-3.2, -1.0, 1.5),
+                "target": (0.0, 0.0, 0.7),
+                "energy": 15.0,         # ~1:43 key:fill — intentionally negligible
+                "kelvin": 6400,
+                "size": 3.0,
+                "size_y": 3.5,
+                "shape": "RECTANGLE",
+                "use_shadow": True,
+                "luxcore_gain": 1.0,
+            },
+        ],
+        "env_light": {"type": "constant", "gain": 0.0001, "color": (0.55, 0.6, 0.65)},
+        # PATH: Fincher deliberately avoids bounce — PATH under-fills correctly
+        "luxcore_cfg": {"engine": "PATH", "path_depth": 8, "halt_samples": 450, "denoiser": True},
     },
 ]
 
