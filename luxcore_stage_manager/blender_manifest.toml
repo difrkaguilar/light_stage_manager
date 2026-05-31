@@ -8,7 +8,7 @@ schema_version = "1.0.0"
 id       = "light_stage_manager"
 name     = "Light Stage Manager"
 tagline  = "34 cinematic lighting presets — LuxCore · Cycles · EEVEE. Asset Browser ready."
-version  = "3.4.0"
+version  = "3.5.0"
 type     = "add-on"
 
 maintainer = "difrkaguilar <difrkaguilar@users.noreply.github.com>"
