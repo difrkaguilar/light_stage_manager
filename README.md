@@ -5,7 +5,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Blender](https://img.shields.io/badge/Blender-4.1%2B-orange.svg)](https://www.blender.org)
 [![LuxCore](https://img.shields.io/badge/BlendLuxCore-2.10.1%2B-green.svg)](https://github.com/LuxCoreRender/BlendLuxCore)
-[![Version](https://img.shields.io/badge/version-3.4.0-informational.svg)](https://github.com/difrkaguilar/light-stage-manager/releases)
+[![Version](https://img.shields.io/badge/version-3.5.0-informational.svg)](https://github.com/difrkaguilar/light-stage-manager/releases)
 
 ---
 
@@ -133,6 +133,38 @@ After applying, three controls let you fine-tune the whole rig without touching 
 
 Gels can also be applied per-light via a `"gel"` key in a preset descriptor, which takes priority over the global gel selector.
 
+### Scene Lights panel — per-light control
+After applying a preset the **Scene Lights** panel lists every light in the rig with
+per-light controls, no need to select each object individually:
+
+| Control | Effect |
+|---|---|
+| **Visibility** | Show/hide in viewport and render |
+| **Energy slider** | Direct wattage edit — does not affect fill ratio |
+| **Color swatch** | Override the resolved colour directly |
+| **Solo** | Hide all other LSM lights so you can evaluate this one alone. Click again or **Exit Solo** to restore |
+| **D / S buttons** | Toggle diffuse and specular contribution (updates LuxCore ray visibility too) |
+| **K button** | Kelvin popup — adjust the colour temperature of one light. Gel and global temp offset are re-applied on top |
+| **Target** | Create a `LSM_Target_<Name>` Empty with a TRACK_TO constraint. Move the Empty to interactively reorient the light |
+
+A **Bake Intensity** banner appears when the global intensity multiplier is not 1.0.
+Baking writes the current scaled energies into the individual lights and resets the
+slider — prevents multiplier stacking when you re-apply a preset later.
+
+### Viewport overlay
+A GPU-drawn overlay shows coloured contours around every visible LSM light in the
+3D Viewport so you can see the rig at a glance without switching to Wireframe:
+
+| Role | Colour |
+|---|---|
+| Key | Yellow |
+| Fill | Blue |
+| Rim | Green |
+| Env | Purple |
+
+Toggle the overlay with the eye icon in the **Scene Lights** panel header.
+The overlay also labels each light with its short name (text rendered with `blf`).
+
 ### Asset Browser integration
 All 34 presets are available directly from Blender's **Asset Browser** with full preview
 thumbnails and category filtering — no N-panel required.
@@ -173,16 +205,12 @@ Point lights with high LuxCore `gain` (e.g. candlelight, WKW practicals) carry a
 `cycles_energy` value. LuxCore uses `energy × gain`; Cycles uses `cycles_energy` directly.
 This prevents practicals from rendering near-black in Cycles.
 
-### Gels and gobos
-- **20 named gels** are available globally from the panel and per-light through the `"gel"` descriptor key.
-- SPOT lights can define a `"gobo"` descriptor that creates a shadow-casting plane for projected pattern work, used by presets such as **Fincher — Controlled**.
-
 ---
 
 ## Installation
 
 ### From ZIP (recommended)
-1. Download `light_stage_manager_v3.4.0.zip` from the [Releases](../../releases) page
+1. Download `light_stage_manager_v3.5.0.zip` from the [Releases](../../releases) page
 2. **Edit → Preferences → Add-ons → Install...** → select the `.zip`
 3. Enable **Lighting: Light Stage Manager**
 4. The **LightStageManager** tab appears in the 3D Viewport N-panel
@@ -212,10 +240,9 @@ Copy-Item -Recurse light-stage-manager\luxcore_stage_manager `
 
 ```
 luxcore_stage_manager/
-├── __init__.py            Entry point, bl_info (v3.4.0), register/unregister
-├── blender_manifest.toml  Blender Extensions Platform metadata (Blender 4.2+)
+├── __init__.py            Entry point, bl_info (v3.5.0), register/unregister
 ├── constants.py           Single source of truth: CATEGORY_DEFS, engine IDs,
-│                          gel presets, gain scales, Kelvin limits. All other modules derive
+│                          gain scales, Kelvin limits. All other modules derive
 │                          from here — no hardcoded category strings elsewhere.
 ├── lxc_compat.py          LuxCore API isolation — dual BLC 2.9/2.10 support,
 │                          LuxCoreLightProxy + LuxCoreWorldProxy typed classes
@@ -227,9 +254,16 @@ luxcore_stage_manager/
 │                          Positions, sizes and energies scaled by scene_scale.
 ├── operators.py           ApplyPreset, ApplyFromAsset, GenerateAssetLibrary,
 │                          SelectLSMLights, RemoveLSMLights, ResetModifiers,
-│                          SetCategory, Diagnose, RenderPreviews
+│                          SetCategory, Diagnose, RenderPreviews,
+│                          LiveUpdate, SoloLight, SoloToggle, ExitSolo,
+│                          BakeIntensity, SetLightDiffuse, SetLightSpecular,
+│                          SetLightKelvin, ToggleLightTarget
+├── overlay.py             GPU draw handler — coloured contour outlines and labels
+│                          for all visible LSM lights in the 3D Viewport.
+│                          Registered/unregistered with the addon.
 ├── panels.py              Passive UI — draw() read-only, mutations via update=.
-│                          Includes LSM_PT_AssetBrowser (FILE_BROWSER space).
+│                          Includes LSM_PT_AssetBrowser (FILE_BROWSER space) and
+│                          LSM_PT_SceneLightsInline (per-light controls).
 ├── preferences.py         AddonPreferences, versioned migration system,
 │                          Asset Library generation button and setup guide
 ├── asset_builder.py       Generates LSM_Assets.blend with World assets.
@@ -259,9 +293,15 @@ luxcore_stage_manager/
   (inverse-square law). SUN lights scale linearly (parallel rays, distance-independent).
 - **Passive UI**: `draw()` methods are read-only. All state mutations go through
   `update=` callbacks. No `bpy.data` access during `register()` — prevents
-  `_RestrictData` crashes on modern Blender builds.
+  `_RestrictData` crashes on Blender 4.4+.
 - **Defensive execution**: every `draw()` and `execute()` is wrapped in `try/except`.
   A broken preset or LuxCore API change never crashes the UI.
+- **Live adjustments**: `apply_live_adjustments()` is the single code path for intensity,
+  temperature offset, gel, and fill ratio. All property `update=` callbacks converge here.
+  Adjustments always start from stored base values (`lsm_base_energy`, `lsm_base_color`,
+  `lsm_kelvin`) so slider moves never accumulate.
+- **Solo isolation**: `bpy.app.driver_namespace` carries the visibility stack during Solo
+  mode — session-scoped, zero persistence, trivially restoreable.
 
 ---
 

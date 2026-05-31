@@ -106,10 +106,6 @@ def apply_lxc_light_props(light_data,
 
     # ---- 2. Gain -----------------------------------------------------------
     ok_gain = _try_set(lx, "gain", float(lxc_gain))
-    print("[LSM]   gain=%s -> %s" % (
-        "%.4f" % lxc_gain,
-        "OK (%.4f)" % _try_get(lx, "gain", -1) if ok_gain else "FAILED"
-    ))
 
     # ---- 3. Color temperature ----------------------------------------------
     if kelvin is not None:
@@ -141,9 +137,7 @@ def apply_lxc_light_props(light_data,
         # Verify
         actual_mode = _try_get(lx, "color_mode", "?")
         actual_k    = _try_get(lx, "temperature", _try_get(lx, "color_temperature", "?"))
-        print("[LSM]   color_mode=%r K=%s -> mode=%r K_actual=%s use_cycles=%s" % (
-            "temperature", k, actual_mode, actual_k,
-            _try_get(lx, "use_cycles_settings", "N/A")))
+        log.debug("[LSM] LXC temp: mode=%r K=%s actual_k=%s", actual_mode, k, actual_k)
     else:
         # RGB color mode
         _try_set(lx, "rgb_gain", tuple(float(c) for c in light_data.color[:3]))
@@ -152,30 +146,55 @@ def apply_lxc_light_props(light_data,
             _try_set(lx, "use_color_temperature", False)
         else:
             _try_set(lx, "use_color_temperature", False)
-        print("[LSM]   color_mode=color (RGB) use_cycles=%s" % (
-            _try_get(lx, "use_cycles_settings", "N/A")))
+        log.debug("[LSM] LXC color: mode=color RGB=%s", light_data.color[:3])
 
 
 def apply_lxc_object_visibility(obj, visible_to_camera: bool = False) -> None:
-    """Set LuxCore object visibility flags.
-
-    BlendLuxCore 2.10 object visibility path:
-        obj.luxcore.visibility.camera   (BoolProperty, default=True)
-    We set camera=False so light objects don't appear in the render image.
-    """
+    """Set LuxCore object visibility flags."""
     lx_obj = getattr(obj, "luxcore", None)
     if lx_obj is None:
         return
-
-    # Try nested visibility group (BLC 2.9+)
     vis = getattr(lx_obj, "visibility", None)
     if vis is not None:
-        _try_set(vis, "camera",     visible_to_camera)
-        _try_set(vis, "indirect",   True)
+        _try_set(vis, "camera",        visible_to_camera)
+        _try_set(vis, "indirect",      True)
         _try_set(vis, "shadowcatcher", False)
     else:
-        # Older BLC flat layout
         _try_set(lx_obj, "visible_to_camera", visible_to_camera)
+
+
+def set_lxc_light_ray_visibility(light_obj,
+                                  diffuse:  bool = True,
+                                  specular: bool = True) -> None:
+    """Toggle LuxCore indirect diffuse / specular ray visibility for a light.
+
+    BlendLuxCore 2.10 exposes these per-light under:
+        obj.luxcore.visibility.indirect_diffuse_enable
+        obj.luxcore.visibility.indirect_specular_enable
+
+    Older BLC may use flat flags; we try both layouts defensively.
+
+    Args:
+        light_obj:  bpy.types.Object of type LIGHT.
+        diffuse:    Whether the light contributes to diffuse bounces.
+        specular:   Whether the light contributes to specular bounces.
+    """
+    lx_obj = getattr(light_obj, "luxcore", None)
+    if lx_obj is None:
+        return
+
+    vis = getattr(lx_obj, "visibility", None)
+    if vis is not None:
+        # BLC 2.10 nested visibility group
+        _try_set(vis, "indirect_diffuse_enable",  diffuse)
+        _try_set(vis, "indirect_specular_enable", specular)
+        # Some builds use shorter names
+        _try_set(vis, "diffuse",  diffuse)
+        _try_set(vis, "specular", specular)
+    else:
+        # Older BLC flat layout
+        _try_set(lx_obj, "indirect_diffuse_enable",  diffuse)
+        _try_set(lx_obj, "indirect_specular_enable", specular)
 
 
 # ---------------------------------------------------------------------------

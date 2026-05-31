@@ -14,7 +14,7 @@ from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty
 from mathutils import Vector
 
-from .presets_data import PRESETS, PRESETS_BY_ID
+from .presets_data import PRESETS, PRESETS_BY_ID, CATEGORIES
 from .scene_builder import apply_preset, remove_lsm_lights
 from .constants import (
     LSM_PREFIX,
@@ -785,11 +785,193 @@ def _serialize_light(obj, scene_origin, scene_scale: float) -> dict | None:
     return desc
 
 
-class LSM_OT_AdjustFillRatio(Operator):
-    """Apply fill_ratio to in-scene LSM lights. Called by property update callback."""
-    bl_idname  = "lsm.adjust_fill_ratio"
-    bl_label   = "Adjust Fill Ratio"
+# ---------------------------------------------------------------------------
+# LSM_OT_SetLightDiffuse / SetLightSpecular / SetLightKelvin / ToggleLightTarget
+# ---------------------------------------------------------------------------
+
+def _get_diffuse(light_data) -> bool:
+    """Return current diffuse-enabled state regardless of Blender version."""
+    v = getattr(light_data, "diffuse_factor", None)
+    if v is not None:
+        return v > 0.5
+    return bool(getattr(light_data, "use_diffuse", True))
+
+
+def _get_specular(light_data) -> bool:
+    """Return current specular-enabled state regardless of Blender version."""
+    v = getattr(light_data, "specular_factor", None)
+    if v is not None:
+        return v > 0.5
+    return bool(getattr(light_data, "use_specular", True))
+
+class LSM_OT_SetLightDiffuse(Operator):
+    """Toggle diffuse contribution for one LSM light (Blender 4.x: diffuse_factor)."""
+    bl_idname  = "lsm.set_light_diffuse"
+    bl_label   = "Toggle Diffuse"
     bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+    value:      bpy.props.BoolProperty(default=True)
+
+    def execute(self, context):
+        obj = context.scene.objects.get(self.light_name)
+        if obj is None or obj.type != "LIGHT":
+            return {"CANCELLED"}
+        ld = obj.data
+        # Blender 4.x uses diffuse_factor (float); older used use_diffuse (bool)
+        try:
+            ld.diffuse_factor = 1.0 if self.value else 0.0
+        except AttributeError:
+            try:
+                ld.use_diffuse = self.value
+            except AttributeError:
+                pass
+        from .lxc_compat import set_lxc_light_ray_visibility
+        spec_val = _get_specular(ld)
+        set_lxc_light_ray_visibility(obj, diffuse=self.value, specular=spec_val)
+        obj["lsm_use_diffuse"] = self.value
+        return {"FINISHED"}
+
+
+class LSM_OT_SetLightSpecular(Operator):
+    """Toggle specular contribution for one LSM light (Blender 4.x: specular_factor)."""
+    bl_idname  = "lsm.set_light_specular"
+    bl_label   = "Toggle Specular"
+    bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+    value:      bpy.props.BoolProperty(default=True)
+
+    def execute(self, context):
+        obj = context.scene.objects.get(self.light_name)
+        if obj is None or obj.type != "LIGHT":
+            return {"CANCELLED"}
+        ld = obj.data
+        try:
+            ld.specular_factor = 1.0 if self.value else 0.0
+        except AttributeError:
+            try:
+                ld.use_specular = self.value
+            except AttributeError:
+                pass
+        from .lxc_compat import set_lxc_light_ray_visibility
+        diff_val = _get_diffuse(ld)
+        set_lxc_light_ray_visibility(obj, diffuse=diff_val, specular=self.value)
+        obj["lsm_use_specular"] = self.value
+        return {"FINISHED"}
+
+
+class LSM_OT_SetLightKelvin(Operator):
+    """Set the colour temperature of one LSM light in Kelvin.
+
+    Updates lsm_kelvin and lsm_base_color then calls live_update so gel
+    and global temp offset are applied on top of the new base colour.
+    """
+    bl_idname  = "lsm.set_light_kelvin"
+    bl_label   = "Set Light Temperature"
+    bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+    kelvin:     bpy.props.FloatProperty(
+        name="Kelvin", default=5600.0,
+        min=1000.0, max=12000.0, step=100, precision=0)
+
+    def execute(self, context):
+        from .scene_builder import kelvin_to_linear_rgb
+        from .constants import KELVIN_MIN, KELVIN_MAX
+        obj = context.scene.objects.get(self.light_name)
+        if obj is None or obj.type != "LIGHT":
+            return {"CANCELLED"}
+        k = max(float(KELVIN_MIN), min(float(KELVIN_MAX), float(self.kelvin)))
+        obj["lsm_kelvin"]     = k
+        obj["lsm_base_color"] = kelvin_to_linear_rgb(k)
+        bpy.ops.lsm.live_update()
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        obj = context.scene.objects.get(self.light_name)
+        if obj:
+            stored_k = float(obj.get("lsm_kelvin", 5600.0))
+            if stored_k > 0:
+                self.kelvin = stored_k
+        return context.window_manager.invoke_props_popup(self, event)
+
+    def draw(self, context):
+        self.layout.prop(self, "kelvin", slider=True)
+
+
+class LSM_OT_ToggleLightTarget(Operator):
+    """Create or remove a target Empty for an LSM light.
+
+    When created: adds LSM_Target_<Name> Empty at the light's current aim
+    point and a TRACK_TO constraint (-Z → target). Move the Empty to
+    interactively reorient the light.
+
+    When removed: deletes the constraint and the Empty.
+    """
+    bl_idname  = "lsm.toggle_light_target"
+    bl_label   = "Toggle Light Target"
+    bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+    _TARGET_PREFIX = "LSM_Target_"
+
+    def execute(self, context):
+        obj = context.scene.objects.get(self.light_name)
+        if obj is None or obj.type != "LIGHT":
+            return {"CANCELLED"}
+        short       = obj.name.replace(LSM_PREFIX, "", 1)
+        target_name = self._TARGET_PREFIX + short
+        existing    = context.scene.objects.get(target_name)
+        if existing:
+            self._remove_target(obj, existing)
+        else:
+            self._create_target(obj, target_name, context)
+        return {"FINISHED"}
+
+    def _create_target(self, light_obj, target_name, context):
+        from mathutils import Vector
+        fwd    = light_obj.matrix_world.to_3x3() @ Vector((0.0, 0.0, -1.0))
+        aim_pt = Vector(light_obj.location) + fwd * 2.0
+
+        empty                    = bpy.data.objects.new(target_name, None)
+        empty.empty_display_type = "PLAIN_AXES"
+        empty.empty_display_size = 0.15
+        empty.location           = aim_pt
+        empty["lsm_role"]        = "target"
+        empty["lsm_for_light"]   = light_obj.name
+        empty["lsm_preset_id"]   = light_obj.get("lsm_preset_id", "")
+
+        for col in light_obj.users_collection:
+            col.objects.link(empty); break
+        else:
+            context.scene.collection.objects.link(empty)
+
+        ct            = light_obj.constraints.new("TRACK_TO")
+        ct.name       = "LSM_TrackTo"
+        ct.target     = empty
+        ct.track_axis = "TRACK_NEGATIVE_Z"
+        ct.up_axis    = "UP_Y"
+
+        light_obj["lsm_has_target"] = True
+        log.debug("[LSM] Target created: %r", target_name)
+
+    def _remove_target(self, light_obj, empty):
+        ct = light_obj.constraints.get("LSM_TrackTo")
+        if ct:
+            light_obj.constraints.remove(ct)
+        bpy.data.objects.remove(empty, do_unlink=True)
+        light_obj["lsm_has_target"] = False
+        log.debug("[LSM] Target removed for %r", light_obj.name)
+
+
+class LSM_OT_LiveUpdate(Operator):
+    """Apply all live adjustments (intensity, temperature, gel, fill ratio)
+    to in-scene LSM lights. Called automatically by property update callbacks.
+    """
+    bl_idname  = "lsm.live_update"
+    bl_label   = "LSM Live Update"
+    bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     @classmethod
     def poll(cls, context):
@@ -797,15 +979,172 @@ class LSM_OT_AdjustFillRatio(Operator):
                    for o in context.scene.objects)
 
     def execute(self, context):
-        from .scene_builder import apply_fill_ratio
+        from .scene_builder import apply_live_adjustments
         props = context.scene.lsm_props
-        n = apply_fill_ratio(
+        apply_live_adjustments(
             scene          = context.scene,
-            fill_ratio     = float(props.fill_ratio),
             intensity_mult = float(props.intensity_multiplier),
+            temp_offset    = float(props.temperature_offset),
+            gel_id         = props.gel_preset,
+            fill_ratio     = float(props.fill_ratio),
         )
-        if n == 0:
-            self.report({"INFO"}, "LSM: No fill/rim lights found — key light required")
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
+# LSM_OT_SoloLight / LSM_OT_ExitSolo
+# ---------------------------------------------------------------------------
+
+_SOLO_VISIBILITY_KEY = "lsm_solo_visibility_stack"
+
+
+class LSM_OT_SoloLight(Operator):
+    """Temporarily hide all other LSM lights so this one can be evaluated alone.
+
+    Saves the current visibility state of all LSM lights so it can be restored
+    exactly on exit. While in Solo mode additional lights can be toggled on.
+    """
+    bl_idname  = "lsm.solo_light"
+    bl_label   = "Solo Light"
+    bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def execute(self, context):
+        import json
+        scene = context.scene
+        lsm_lights = [o for o in scene.objects
+                      if o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"]
+
+        # Save current visibility state if not already in Solo mode
+        if _SOLO_VISIBILITY_KEY not in bpy.app.driver_namespace:
+            state = {o.name: (o.hide_viewport, o.hide_render)
+                     for o in lsm_lights}
+            bpy.app.driver_namespace[_SOLO_VISIBILITY_KEY] = state
+            log.debug("[LSM] Solo: saved state for %d lights", len(state))
+
+        # Hide all except the target
+        for obj in lsm_lights:
+            is_target = (obj.name == self.light_name)
+            obj.hide_viewport = not is_target
+            obj.hide_render   = not is_target
+
+        # Store which light is soloed on the scene for the panel to read
+        scene["lsm_solo_active"] = self.light_name
+        return {"FINISHED"}
+
+
+class LSM_OT_SoloToggle(Operator):
+    """While in Solo mode, toggle an additional light on or off."""
+    bl_idname  = "lsm.solo_toggle"
+    bl_label   = "Toggle in Solo"
+    bl_options = {"REGISTER", "UNDO"}
+
+    light_name: bpy.props.StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return _SOLO_VISIBILITY_KEY in bpy.app.driver_namespace
+
+    def execute(self, context):
+        obj = context.scene.objects.get(self.light_name)
+        if obj:
+            obj.hide_viewport = not obj.hide_viewport
+            obj.hide_render   = obj.hide_viewport
+        return {"FINISHED"}
+
+
+class LSM_OT_ExitSolo(Operator):
+    """Exit Solo mode and restore previous light visibility."""
+    bl_idname  = "lsm.exit_solo"
+    bl_label   = "Exit Solo"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return _SOLO_VISIBILITY_KEY in bpy.app.driver_namespace
+
+    def execute(self, context):
+        state = bpy.app.driver_namespace.pop(_SOLO_VISIBILITY_KEY, {})
+        for name, (hide_vp, hide_rnd) in state.items():
+            obj = context.scene.objects.get(name)
+            if obj:
+                obj.hide_viewport = hide_vp
+                obj.hide_render   = hide_rnd
+
+        context.scene.pop("lsm_solo_active", None)
+        log.debug("[LSM] Solo: restored %d lights", len(state))
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
+# LSM_OT_BakeIntensity
+# ---------------------------------------------------------------------------
+
+class LSM_OT_BakeIntensity(Operator):
+    """Bake the current intensity multiplier into individual light energies.
+
+    Writes the current scaled energy values into each LSM light's data and
+    resets ``intensity_multiplier`` to 1.0. Also updates ``lsm_raw_energy``
+    so subsequent adjustments start from the baked values.
+
+    Use this when you want to fine-tune individual lights after setting the
+    overall exposure — prevents the multiplier from stacking on re-apply.
+    """
+    bl_idname  = "lsm.bake_intensity"
+    bl_label   = "Bake Intensity"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        props = getattr(context.scene, "lsm_props", None)
+        if props is None:
+            return False
+        return (abs(props.intensity_multiplier - 1.0) > 0.001 and
+                any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                    for o in context.scene.objects))
+
+    def execute(self, context):
+        scene = context.scene
+        props = scene.lsm_props
+        mult  = float(props.intensity_multiplier)
+
+        n = 0
+        for obj in scene.objects:
+            if not (obj.name.startswith(LSM_PREFIX) and obj.type == "LIGHT"):
+                continue
+            # Bake current energy (already scaled by live_update) into raw
+            obj["lsm_raw_energy"] = obj.data.energy   # already at mult×raw
+            n += 1
+
+        # Reset multiplier — raw values now carry the baked energy
+        props.intensity_multiplier = 1.0
+        self.report({"INFO"}, "LSM: Baked intensity into %d lights (×%.2f)" % (n, mult))
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
+# LSM_OT_AdjustFillRatio — kept for backward compatibility, delegates to LiveUpdate
+# ---------------------------------------------------------------------------
+
+class LSM_OT_AdjustFillRatio(Operator):
+    """Kept for backward compatibility. Delegates to lsm.live_update."""
+    bl_idname  = "lsm.adjust_fill_ratio"
+    bl_label   = "Adjust Fill Ratio"
+    bl_options = {"REGISTER", "UNDO", "INTERNAL"}
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def execute(self, context):
+        bpy.ops.lsm.live_update()
         return {"FINISHED"}
 
 
@@ -1056,6 +1395,15 @@ OPERATORS = (
     LSM_OT_DiagnoseLights,
     LSM_OT_VerifyActivePreset,
     LSM_OT_RenderPreviews,
+    LSM_OT_SetLightDiffuse,
+    LSM_OT_SetLightSpecular,
+    LSM_OT_SetLightKelvin,
+    LSM_OT_ToggleLightTarget,
+    LSM_OT_LiveUpdate,
+    LSM_OT_SoloLight,
+    LSM_OT_SoloToggle,
+    LSM_OT_ExitSolo,
+    LSM_OT_BakeIntensity,
     LSM_OT_AdjustFillRatio,
     LSM_OT_SavePresetFromScene,
     LSM_OT_DeleteUserPreset,

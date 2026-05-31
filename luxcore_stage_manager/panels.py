@@ -17,9 +17,13 @@ from .constants import (
     LSM_PREFIX, LUXCORE_ENGINE_ID, CYCLES_ENGINE_ID,
     CATEGORY_ICONS, GEL_ENUM_ITEMS,
 )
+# Solo state key — shared with operators.py via bpy.app.driver_namespace
+_SOLO_VISIBILITY_KEY = "lsm_solo_visibility_stack"
 
 # CAT_ICONS is no longer defined here — use CATEGORY_ICONS from constants directly.
 CAT_ICONS = CATEGORY_ICONS   # thin alias kept for any future local references
+
+log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -91,26 +95,32 @@ class LSM_SceneProperties(PropertyGroup):
 
     intensity_multiplier: FloatProperty(
         name="Intensity",
-        description="Global energy multiplier applied to all lights in the preset",
+        description="Global energy multiplier applied to all lights in the scene",
         default=1.0, min=0.01, max=20.0, soft_min=0.1, soft_max=5.0,
         step=10, precision=2,
+        update=lambda self, ctx: bpy.ops.lsm.live_update(),
     )
     temperature_offset: FloatProperty(
         name="Temp Offset (K)",
-        description="Kelvin offset added to every color temperature in the preset",
+        description=(
+            "Kelvin offset applied to all lights that have a colour temperature.\n"
+            "RGB-only lights (e.g. neon accents) are not affected.\n"
+            "Updates in real time."
+        ),
         default=0.0, min=-5000.0, max=5000.0, soft_min=-1500.0, soft_max=1500.0,
         step=100, precision=0,
+        update=lambda self, ctx: bpy.ops.lsm.live_update(),
     )
 
     gel_preset: bpy.props.EnumProperty(
         name="Gel",
         description=(
-            "Apply a named colour gel to all lights in the preset.\n"
-            "Multiplies the resolved light colour — works with both kelvin and RGB sources.\n"
-            "Use per-light 'gel' key in a descriptor to override individually."
+            "Named colour gel multiplied over all light colours.\n"
+            "Works with both kelvin and RGB sources. Updates in real time."
         ),
         items=GEL_ENUM_ITEMS,
         default="none",
+        update=lambda self, ctx: bpy.ops.lsm.live_update(),
     )
     clear_existing: BoolProperty(
         name="Clear Existing LSM Lights",
@@ -163,16 +173,26 @@ class LSM_SceneProperties(PropertyGroup):
     fill_ratio: bpy.props.FloatProperty(
         name="Fill Ratio",
         description=(
-            "Fill-to-key energy ratio applied to existing LSM lights in the scene.\n"
-            "1.0 = fill equals key (flat lighting)\n"
-            "0.5 = fill at half key energy (2:1 ratio, standard portrait)\n"
-            "0.0 = no fill (maximum drama)\n"
-            "Rim lights track at half the fill ratio.\n"
-            "Does not re-apply the preset — adjusts in-scene lights directly."
+            "Fill-to-key energy ratio.\n"
+            "1.0 = flat (fill equals key)\n"
+            "0.5 = 2:1 ratio, standard portrait\n"
+            "0.0 = no fill, maximum drama\n"
+            "Rim lights track at half the fill ratio. Updates in real time."
         ),
         default=1.0, min=0.0, max=2.0, soft_min=0.0, soft_max=1.0,
         step=5, precision=2,
-        update=lambda self, ctx: bpy.ops.lsm.adjust_fill_ratio(),
+        update=lambda self, ctx: bpy.ops.lsm.live_update(),
+    )
+
+    show_overlay: bpy.props.BoolProperty(
+        name="Light Contours",
+        description=(
+            "Show coloured contour overlays in the 3D viewport for all LSM lights.\n"
+            "Key = yellow  ·  Fill = blue  ·  Rim = green  ·  Env = purple"
+        ),
+        default=True,
+        update=lambda self, ctx: ctx.scene.__setitem__(
+            "lsm_overlay_enabled", self.show_overlay),
     )
 
 # ---------------------------------------------------------------------------
@@ -528,12 +548,11 @@ class LSM_PT_SceneTools(Panel):
             save_col = save_box.column(align=True)
             save_row = save_col.row(align=True)
             save_row.scale_y = 1.3
-            save_op = save_row.operator(
+            save_row.operator(
                 "lsm.save_preset_from_scene",
                 text="Save Rig as Preset",
                 icon="ADD",
             )
-            save_op.preset_name = ""   # dialog will pre-fill
 
             # Delete button — only enabled when a user preset is selected
             from .presets_data import PRESETS_BY_ID
@@ -677,6 +696,187 @@ def _deferred_init():
 # Registration
 # ---------------------------------------------------------------------------
 
+class LSM_PT_SceneLightsInline(bpy.types.Panel):
+    """Inline control panel for all LSM lights currently in the scene.
+
+    Lists lights grouped by role (key / fill / rim / other) with per-light
+    energy slider, color swatch, visibility toggle, and Solo button.
+    Shows Bake Intensity when multiplier != 1.0.
+    """
+    bl_label       = "Scene Lights"
+    bl_idname      = "LSM_PT_SceneLightsInline"
+    bl_space_type  = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category    = "LightStageManager"
+    bl_order       = 40
+    bl_options     = {"DEFAULT_CLOSED"}
+
+    def draw_header(self, context):
+        props = getattr(context.scene, "lsm_props", None)
+        if props:
+            self.layout.prop(props, "show_overlay", text="",
+                             icon="HIDE_OFF" if props.show_overlay else "HIDE_ON")
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.name.startswith(LSM_PREFIX) and o.type == "LIGHT"
+                   for o in context.scene.objects)
+
+    def draw(self, context):
+        try:
+            layout = self.layout
+            scene  = context.scene
+            props  = scene.lsm_props
+            in_solo = _SOLO_VISIBILITY_KEY in bpy.app.driver_namespace
+            solo_target = scene.get("lsm_solo_active", "")
+
+            lsm_lights = [o for o in scene.objects
+                          if o.name.startswith(LSM_PREFIX)
+                          and o.type == "LIGHT"
+                          and o.get("lsm_role") != "gobo"]
+
+            # --- Bake Intensity banner ---
+            if abs(props.intensity_multiplier - 1.0) > 0.001:
+                bake_row = layout.row()
+                bake_row.alert = True
+                bake_row.operator("lsm.bake_intensity",
+                                  text="Bake Intensity ×%.2f → 1.0" % props.intensity_multiplier,
+                                  icon="IMPORT")
+
+            # --- Exit Solo banner ---
+            if in_solo:
+                exit_row = layout.row()
+                exit_row.alert = True
+                exit_row.operator("lsm.exit_solo",
+                                  text="Exit Solo — restore all lights",
+                                  icon="SOLO_OFF")
+
+            layout.separator(factor=0.3)
+
+            # Group by role
+            role_order  = ["key", "fill", "rim", "env", "fill"]
+            role_labels = {"key": "Key", "fill": "Fill", "rim": "Rim",
+                           "env": "Env", None: "Other"}
+            seen_roles  = {}
+            for obj in lsm_lights:
+                r = obj.get("lsm_role", "fill")
+                seen_roles.setdefault(r, []).append(obj)
+
+            role_priority = ["key", "fill", "rim", "env"]
+            sorted_roles  = sorted(seen_roles.keys(),
+                                   key=lambda r: role_priority.index(r)
+                                   if r in role_priority else 99)
+
+            for role in sorted_roles:
+                objs = seen_roles[role]
+                role_header = layout.row()
+                role_header.label(text=role_labels.get(role, role.capitalize()),
+                                  icon="LIGHT")
+
+                for obj in objs:
+                    ld        = obj.data
+                    is_solo   = (obj.name == solo_target)
+                    is_hidden = obj.hide_viewport
+                    has_target = bool(obj.get("lsm_has_target", False))
+
+                    # --- Primary row ---
+                    row = layout.row(align=True)
+                    row.active = not is_hidden
+
+                    # Visibility toggle
+                    vis_icon = "HIDE_OFF" if not is_hidden else "HIDE_ON"
+                    row.prop(obj, "hide_viewport",
+                             text="", icon=vis_icon, emboss=False)
+
+                    # Role color dot — maps to the overlay contour color
+                    _role_icons = {
+                        "key":  "KEYTYPE_JITTER_VEC",     # yellow-ish
+                        "fill": "KEYTYPE_BREAKDOWN_VEC",  # blue-ish
+                        "rim":  "KEYTYPE_MOVING_HOLD_VEC",# green-ish
+                        "env":  "KEYTYPE_EXTREME_VEC",    # purple-ish
+                    }
+                    dot_icon = _role_icons.get(role, "KEYTYPE_KEYFRAME_VEC")
+                    row.label(text="", icon=dot_icon)
+
+                    # Light name (shortened)
+                    short_name = obj.name.replace(LSM_PREFIX, "", 1)
+                    row.label(text=short_name)
+
+                    # Energy slider
+                    row.prop(ld, "energy", text="", slider=False)
+
+                    # Color swatch
+                    row.prop(ld, "color", text="")
+
+                    # Solo button
+                    solo_op = row.operator(
+                        "lsm.solo_toggle" if (in_solo and not is_solo) else "lsm.solo_light",
+                        text="",
+                        icon="SOLO_ON" if is_solo else "RADIOBUT_OFF",
+                        depress=is_solo,
+                    )
+                    solo_op.light_name = obj.name
+
+                    # --- Secondary row: D/S toggles + Kelvin + Target ---
+                    sub = layout.row(align=True)
+                    sub.scale_y = 0.75
+                    sub.active  = not is_hidden
+
+                    # Diffuse toggle — Blender 4.x: diffuse_factor; older: use_diffuse
+                    use_d = (getattr(ld, "diffuse_factor",  None) or 0) > 0.5 \
+                            if hasattr(ld, "diffuse_factor") \
+                            else getattr(ld, "use_diffuse", True)
+                    diff_op  = sub.operator(
+                        "lsm.set_light_diffuse",
+                        text="D", depress=use_d,
+                        icon="BLANK1",
+                    )
+                    diff_op.light_name = obj.name
+                    diff_op.value      = not use_d
+
+                    # Specular toggle
+                    use_s = (getattr(ld, "specular_factor", None) or 0) > 0.5 \
+                            if hasattr(ld, "specular_factor") \
+                            else getattr(ld, "use_specular", True)
+                    spec_op  = sub.operator(
+                        "lsm.set_light_specular",
+                        text="S", depress=use_s,
+                        icon="BLANK1",
+                    )
+                    spec_op.light_name = obj.name
+                    spec_op.value      = not use_s
+
+                    sub.separator(factor=0.5)
+
+                    # Kelvin temperature button
+                    stored_k = float(obj.get("lsm_kelvin", -1.0))
+                    k_label  = "%.0fK" % stored_k if stored_k > 0 else "RGB"
+                    k_op     = sub.operator(
+                        "lsm.set_light_kelvin",
+                        text=k_label,
+                        icon="LIGHT_SUN",
+                    )
+                    k_op.light_name = obj.name
+                    k_op.kelvin     = max(1000.0, stored_k) if stored_k > 0 else 5600.0
+
+                    sub.separator(factor=0.5)
+
+                    # Target Empty toggle
+                    target_icon = "EMPTY_AXIS" if has_target else "EMPTY_DATA"
+                    tgt_op = sub.operator(
+                        "lsm.toggle_light_target",
+                        text="",
+                        icon=target_icon,
+                        depress=has_target,
+                    )
+                    tgt_op.light_name = obj.name
+
+                layout.separator(factor=0.2)
+
+        except Exception as exc:
+            log.error("LSM_PT_SceneLightsInline.draw: %s", exc)
+
+
 class LSM_PT_AssetBrowser(bpy.types.Panel):
     """Panel shown in the Asset Browser sidebar when an LSM asset is active.
 
@@ -773,10 +973,11 @@ class LSM_PT_AssetBrowser(bpy.types.Panel):
 
 PROPERTY_GROUPS = (LSM_PresetListItem, LSM_SceneProperties)
 UILISTS         = (LSM_UL_PresetList,)
-PANELS          = (
+PANELS = (
     LSM_PT_Main,
     LSM_PT_PresetInfo,
     LSM_PT_LightModifiers,
+    LSM_PT_SceneLightsInline,
     LSM_PT_SceneTools,
     LSM_PT_Previews,
     LSM_PT_RenderProperties,

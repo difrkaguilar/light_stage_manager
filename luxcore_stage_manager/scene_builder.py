@@ -253,10 +253,23 @@ def create_light(descriptor:    dict,
 
     # Store metadata as custom properties for round-trip serialisation and
     # for the fill-ratio operator to identify light roles without name parsing.
-    obj["lsm_role"]         = descriptor.get("role", "fill")   # "key"|"fill"|"rim"|"env"
-    obj["lsm_raw_energy"]   = float(raw_energy)                 # preset value at scale=1
+    obj["lsm_role"]         = descriptor.get("role", "fill")
+    obj["lsm_raw_energy"]   = float(raw_energy)       # unscaled preset value
+    obj["lsm_base_energy"]  = float(actual_energy)    # scaled applied energy — live_update reference
+    obj["lsm_luxcore_gain"] = float(gain_mult)        # luxcore_gain from descriptor
     obj["lsm_light_type"]   = light_type
-    obj["lsm_preset_id"]    = descriptor.get("_preset_id", "")  # injected by apply_preset
+    obj["lsm_preset_id"]    = descriptor.get("_preset_id", "")
+    # Store original color/kelvin from preset for live adjustments.
+    # Updates always start from these base values — never accumulate.
+    if kelvin is not None:
+        obj["lsm_kelvin"]     = float(kelvin)
+        obj["lsm_base_color"] = kelvin_to_linear_rgb(float(kelvin))
+    elif color_rgb is not None:
+        obj["lsm_kelvin"]     = -1.0   # sentinel: RGB source, no kelvin
+        obj["lsm_base_color"] = tuple(float(c) for c in color_rgb[:3])
+    else:
+        obj["lsm_kelvin"]     = -1.0
+        obj["lsm_base_color"] = (1.0, 1.0, 1.0)
 
     # =========================================================================
     # PHASE 2a: LuxCore-specific properties (only when LuxCore is active)
@@ -473,7 +486,10 @@ def _remove_empty_lsm_collections(scene) -> None:
 
 
 def remove_lsm_lights(scene) -> int:
-    to_delete = [o for o in scene.objects if o.name.startswith(LSM_PREFIX)]
+    """Remove all LSM objects: lights, gobo planes, and target empties."""
+    to_delete = [o for o in scene.objects
+                 if o.name.startswith(LSM_PREFIX)
+                 or o.name.startswith("LSM_Target_")]
     for obj in to_delete:
         try:
             for col in list(obj.users_collection):
@@ -489,7 +505,122 @@ def remove_lsm_lights(scene) -> int:
 # Full preset application — engine-aware entry point
 # ---------------------------------------------------------------------------
 
-def apply_fill_ratio(scene, fill_ratio: float, intensity_mult: float = 1.0) -> int:
+def apply_live_adjustments(scene,
+                           intensity_mult:  float = 1.0,
+                           temp_offset:     float = 0.0,
+                           gel_id:          str   = "none",
+                           fill_ratio:      float = 1.0) -> int:
+    """Apply intensity, temperature, gel and fill-ratio to in-scene LSM lights.
+
+    This is the single function called by ALL live-update callbacks. It always
+    starts from the stored base values (``lsm_raw_energy``, ``lsm_base_color``,
+    ``lsm_kelvin``) so adjustments never accumulate across slider moves.
+
+    Args:
+        scene:          Target bpy.types.Scene.
+        intensity_mult: Global energy multiplier.
+        temp_offset:    Kelvin offset (applied only to lights with lsm_kelvin > 0).
+        gel_id:         Named gel from GEL_COLORS, or "none".
+        fill_ratio:     Fill-to-key ratio (applied after intensity).
+
+    Returns:
+        Number of lights updated.
+    """
+    from .constants import GEL_COLORS, KELVIN_MIN, KELVIN_MAX
+
+    lsm_lights = [o for o in scene.objects
+                  if o.name.startswith(LSM_PREFIX)
+                  and o.type == "LIGHT"
+                  and o.get("lsm_role") != "gobo"]
+
+    if not lsm_lights:
+        return 0
+
+    # Gel multiplier
+    gel_rgb = GEL_COLORS.get(gel_id) if gel_id and gel_id != "none" else None
+
+    # Find key base energy for fill ratio (at intensity_mult=1.0)
+    key_base_energy = None
+    for obj in lsm_lights:
+        if obj.get("lsm_role") == "key":
+            key_base_energy = float(obj.get("lsm_base_energy",
+                                            obj.get("lsm_raw_energy",
+                                                    obj.data.energy)))
+            break
+
+    updated = 0
+    for obj in lsm_lights:
+        ld   = obj.data
+        role = obj.get("lsm_role", "fill")
+
+        # lsm_base_energy = actual energy at intensity_mult=1.0 (includes scene_scale²)
+        # Falls back to lsm_raw_energy for lights created before this fix,
+        # then to current ld.energy as last resort.
+        base = float(obj.get("lsm_base_energy",
+                              obj.get("lsm_raw_energy", ld.energy)))
+
+        # --- Energy ---
+        if role in ("fill", "rim") and key_base_energy is not None:
+            ratio       = float(fill_ratio) if role == "fill" else float(fill_ratio) * 0.5
+            scaled_key  = key_base_energy * max(0.0001, float(intensity_mult))
+            base_energy = scaled_key * ratio
+        else:
+            base_energy = base * max(0.0001, float(intensity_mult))
+
+        ld.energy = max(0.001, base_energy)
+
+        # --- Color ---
+        base_color = list(obj.get("lsm_base_color", (1.0, 1.0, 1.0)))
+        stored_k   = float(obj.get("lsm_kelvin", -1.0))
+
+        if stored_k > 0 and abs(temp_offset) > 0.5:
+            adjusted_k = max(float(KELVIN_MIN),
+                             min(float(KELVIN_MAX), stored_k + float(temp_offset)))
+            base_color = list(kelvin_to_linear_rgb(adjusted_k))
+
+        if gel_rgb:
+            base_color = [
+                base_color[0] * gel_rgb[0],
+                base_color[1] * gel_rgb[1],
+                base_color[2] * gel_rgb[2],
+            ]
+
+        ld.color = tuple(base_color)
+
+        # --- LuxCore energy + color sync (minimal — avoids texture leak) ---
+        # LuxCore uses luxcore.gain for energy in artistic mode — ld.energy is ignored.
+        # We update ONLY gain and rgb_gain directly to avoid triggering a full
+        # material redefinition (which creates new ConstFloatTexture3 objects each call).
+        try:
+            from .lxc_compat import is_active_engine, _try_set, _try_get
+            from .constants import (LXC_AREA_GAIN_SCALE, LXC_SPOT_GAIN_SCALE,
+                                    LXC_POINT_GAIN_SCALE, LXC_SUN_GAIN_SCALE)
+            if is_active_engine(scene):
+                lx = getattr(ld, "luxcore", None)
+                if lx is not None:
+                    # Gain: energy × gain_scale × luxcore_gain_from_descriptor
+                    _gain_scales = {
+                        "AREA":  LXC_AREA_GAIN_SCALE,
+                        "SPOT":  LXC_SPOT_GAIN_SCALE,
+                        "POINT": LXC_POINT_GAIN_SCALE,
+                        "SUN":   LXC_SUN_GAIN_SCALE,
+                    }
+                    gs = _gain_scales.get(ld.type, LXC_AREA_GAIN_SCALE)
+                    lxc_gain_val = base_energy * gs * float(obj.get("lsm_luxcore_gain", 1.0))
+                    _try_set(lx, "gain", lxc_gain_val)
+
+                    # Color: only update rgb_gain if color actually differs from
+                    # the Blender native color already set above.  This avoids
+                    # creating a new LuxCore texture when only energy changed.
+                    cur_mode = _try_get(lx, "color_mode", "color")
+                    if cur_mode == "color":
+                        _try_set(lx, "rgb_gain", tuple(base_color))
+        except Exception:
+            pass
+
+        updated += 1
+
+    return updated
     """Adjust fill and rim light energies relative to the key light in the scene.
 
     This operates on LSM_ lights **already in the scene** without re-applying
