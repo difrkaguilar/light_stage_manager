@@ -24,66 +24,66 @@ all calibrated for LuxCore, Cycles and EEVEE with a single click.
 Film-inspired setups that reference specific cinematographers and productions.
 Each one has a deliberate intention — not just "looks good" but "looks like *this*".
 
-| Preset | Mood & intent |
-|---|---|
-| **Deakins — Window Natural** | A single motivated window. The room breathes. Nothing screams "lighting rig". This is what Deakins spent 40 years perfecting: light that looks like it was already there |
-| **Wong Kar-wai — Amber Night** | A practical lamp fights against neon and painted-wall bounce. The scene is emotionally saturated before anything happens. Warm amber dominant, green accent, red fill |
-| **Blade Runner 2049** | Cold blue ambient from an overcast dystopian sky versus a narrow orange neon stripe. Extreme contrast ratio. The colour temperature war is the composition |
-| **A24 — Golden Naturalism** | Late afternoon sun at 3200K, open sky at 10 000K as the counter-key, ground bounce for warmth from below. No rig visible. Relies on global illumination for cohesion — apply with BIDIR |
-| **Kubrick — Overhead Hard** | Surgical overhead SPOT at near-zero fill ratio. The skull shadows are the point. Ghost fill at 1:25 ratio just prevents total crush. Cold blue rim for minimal separation |
-| **Zsigmond — Cold Exterior** | Vilmos Zsigmond's winter palette from The Deer Hunter. Flat overcast grey-blue sky as the dominant source, weak cool sun at low angle. No artificial fill — the sky *is* the fill |
-| **Lubezki — Continuous Window** | One light. One enormous wall-sized window. All fill comes from GI bounce. The most committed single-source setup in the collection. Works best on high-sample BIDIR renders |
-| **Fincher — Controlled** | Precise SPOT with a gobo plane for projected shadow patterns. 1:43 key-to-fill ratio — almost no fill, almost total control. Assign your own B&W texture to the gobo plane material |
+| | Preset | Mood & intent |
+|:---:|---|---|
+| <img width="120" src="luxcore_stage_manager/previews/cin_deakins_window.png" alt="Deakins Window Natural"> | **Deakins — Window Natural** | A single motivated window. The room breathes. Nothing screams "lighting rig". This is what Deakins spent 40 years perfecting: light that looks like it was already there |
+| <img width="120" src="luxcore_stage_manager/previews/cin_wkw_amber_night.png" alt="Wong Kar-wai Amber Night"> | **Wong Kar-wai — Amber Night** | A practical lamp fights against neon and painted-wall bounce. The scene is emotionally saturated before anything happens. Warm amber dominant, green accent, red fill |
+| <img width="120" src="luxcore_stage_manager/previews/cin_br2049.png" alt="Blade Runner 2049"> | **Blade Runner 2049** | Cold blue ambient from an overcast dystopian sky versus a narrow orange neon stripe. Extreme contrast ratio. The colour temperature war is the composition |
+| <img width="120" src="luxcore_stage_manager/previews/cin_a24_golden.png" alt="A24 Golden Naturalism"> | **A24 — Golden Naturalism** | Late afternoon sun at 3200K, open sky at 10 000K as the counter-key, ground bounce for warmth from below. No rig visible. Relies on global illumination for cohesion — apply with BIDIR |
+| <img width="120" src="luxcore_stage_manager/previews/cin_kubrick.png" alt="Kubrick Overhead Hard"> | **Kubrick — Overhead Hard** | Surgical overhead SPOT at near-zero fill ratio. The skull shadows are the point. Ghost fill at 1:25 ratio just prevents total crush. Cold blue rim for minimal separation |
+| <img width="120" src="luxcore_stage_manager/previews/cin_zsigmond_cold.png" alt="Zsigmond Cold Exterior"> | **Zsigmond — Cold Exterior** | Vilmos Zsigmond's winter palette from The Deer Hunter. Flat overcast grey-blue sky as the dominant source, weak cool sun at low angle. No artificial fill — the sky *is* the fill |
+| <img width="120" src="luxcore_stage_manager/previews/cin_lubezki_window.png" alt="Lubezki Continuous Window"> | **Lubezki — Continuous Window** | One light. One enormous wall-sized window. All fill comes from GI bounce. The most committed single-source setup in the collection. Works best on high-sample BIDIR renders |
+| <img width="120" src="luxcore_stage_manager/previews/cin_fincher.png" alt="Fincher Controlled"> | **Fincher — Controlled** | Precise SPOT with a gobo plane for projected shadow patterns. 1:43 key-to-fill ratio — almost no fill, almost total control. Assign your own B&W texture to the gobo plane material |
 
 ### 🧑 Portrait (8)
 Classic and contemporary portrait rigs. Each one solves a specific photographic problem.
 
-| Preset | When to use it |
-|---|---|
-| **Rembrandt Classic** | The triangle of light on the far cheek. Commercially useful for anyone who looks better with a slight mystery to them |
-| **Butterfly / Paramount** | Front-above key for the classic Hollywood look. Eliminates under-chin shadows. The go-to for beauty work |
-| **Loop Lighting** | Key at 30-45°. Small nose shadow. The most versatile commercial portrait setup — works for almost any face shape |
-| **Split Lighting** | 90° side key, half the face in shadow. High drama, high contrast. Strong for editorial |
-| **Clamshell Beauty** | Top key + chin reflector. Kills under-eye shadows completely. Fashion and beauty industry standard |
-| **Broad Lighting** | Key on the camera-facing side. Widening and three-dimensional — works against conventional wisdom |
-| **Short Lighting** | Key on the far side. Slimming. Traditionally masculine portraiture |
-| **Film Noir** | Single hard top spot with no fill. Long shadows, high contrast. The shadows tell the story |
+| | Preset | When to use it |
+|:---:|---|---|
+| <img width="120" src="luxcore_stage_manager/previews/rembrandt.png" alt="Rembrandt Classic"> | **Rembrandt Classic** | The triangle of light on the far cheek. Commercially useful for anyone who looks better with a slight mystery to them |
+| <img width="120" src="luxcore_stage_manager/previews/butterfly.png" alt="Butterfly Paramount"> | **Butterfly / Paramount** | Front-above key for the classic Hollywood look. Eliminates under-chin shadows. The go-to for beauty work |
+| <img width="120" src="luxcore_stage_manager/previews/loop.png" alt="Loop Lighting"> | **Loop Lighting** | Key at 30-45°. Small nose shadow. The most versatile commercial portrait setup — works for almost any face shape |
+| <img width="120" src="luxcore_stage_manager/previews/split.png" alt="Split Lighting"> | **Split Lighting** | 90° side key, half the face in shadow. High drama, high contrast. Strong for editorial |
+| <img width="120" src="luxcore_stage_manager/previews/clamshell.png" alt="Clamshell Beauty"> | **Clamshell Beauty** | Top key + chin reflector. Kills under-eye shadows completely. Fashion and beauty industry standard |
+| <img width="120" src="luxcore_stage_manager/previews/broad.png" alt="Broad Lighting"> | **Broad Lighting** | Key on the camera-facing side. Widening and three-dimensional — works against conventional wisdom |
+| <img width="120" src="luxcore_stage_manager/previews/short.png" alt="Short Lighting"> | **Short Lighting** | Key on the far side. Slimming. Traditionally masculine portraiture |
+| <img width="120" src="luxcore_stage_manager/previews/film_noir.png" alt="Film Noir"> | **Film Noir** | Single hard top spot with no fill. Long shadows, high contrast. The shadows tell the story |
 
 ### 📦 Product (9)
 Studio setups for product, e-commerce, and automotive. Built around specular control.
 
-| Preset | What it solves |
-|---|---|
-| **Automotive Studio Rig** | Matched vertical strip lights reveal bodywork curvature. The strip specular *is* the design language of the car. Overhead + front key + cyclorama ground fill |
-| **Product Classic 45°** | The most reliable commercial setup. 45° front key, soft fill, separation backlight |
-| **Product Clamshell** | Symmetric top/bottom wrap for jewelry and cosmetics where shadows are unwanted |
-| **Tabletop Sweep** | Large side softbox + bounce fill for e-commerce. Clean, directional, scalable |
-| **Infinity White** | High-key infinite white. Catalogue standard. Everything needs to render on white eventually |
-| **Backlit / Translucent** | Strong backlight for bottles, glasses, anything that reveals its material when lit from behind |
-| **Studio Three-Point Pro** | The reliable workhorse. Front-side key, soft fill, top accent. Never wrong |
-| **Jewelry Macro Sparkle** | Multiple small hard sources that make gemstones fire. Caustics-heavy — needs BIDIR |
-| **Cosmetic Gradient Beauty** | Enveloping front light for packaging and perfumery. The product glows without a visible source |
+| | Preset | What it solves |
+|:---:|---|---|
+| <img width="120" src="luxcore_stage_manager/previews/automotive_studio.png" alt="Automotive Studio Rig"> | **Automotive Studio Rig** | Matched vertical strip lights reveal bodywork curvature. The strip specular *is* the design language of the car. Overhead + front key + cyclorama ground fill |
+| <img width="120" src="luxcore_stage_manager/previews/product_45.png" alt="Product Classic 45"> | **Product Classic 45°** | The most reliable commercial setup. 45° front key, soft fill, separation backlight |
+| <img width="120" src="luxcore_stage_manager/previews/clamshell_product.png" alt="Product Clamshell"> | **Product Clamshell** | Symmetric top/bottom wrap for jewelry and cosmetics where shadows are unwanted |
+| <img width="120" src="luxcore_stage_manager/previews/tabletop_sweep.png" alt="Tabletop Sweep"> | **Tabletop Sweep** | Large side softbox + bounce fill for e-commerce. Clean, directional, scalable |
+| <img width="120" src="luxcore_stage_manager/previews/infinity_white.png" alt="Infinity White"> | **Infinity White** | High-key infinite white. Catalogue standard. Everything needs to render on white eventually |
+| <img width="120" src="luxcore_stage_manager/previews/backlit_product.png" alt="Backlit Translucent"> | **Backlit / Translucent** | Strong backlight for bottles, glasses, anything that reveals its material when lit from behind |
+| <img width="120" src="luxcore_stage_manager/previews/studio_3light.png" alt="Studio Three-Point Pro"> | **Studio Three-Point Pro** | The reliable workhorse. Front-side key, soft fill, top accent. Never wrong |
+| <img width="120" src="luxcore_stage_manager/previews/jewelry_sparkle.png" alt="Jewelry Macro Sparkle"> | **Jewelry Macro Sparkle** | Multiple small hard sources that make gemstones fire. Caustics-heavy — needs BIDIR |
+| <img width="120" src="luxcore_stage_manager/previews/cosmetic_gradient.png" alt="Cosmetic Gradient Beauty"> | **Cosmetic Gradient Beauty** | Enveloping front light for packaging and perfumery. The product glows without a visible source |
 
 ### 🏛️ Architecture (5)
 Interior and exterior lighting for architectural visualization and spatial rendering.
 
-| Preset | Character |
-|---|---|
-| **Interior Daylight** | Sun + sky area + interior fill. Side window as the spatial anchor |
-| **Interior Night Artificial** | Warm pendants + cool accent. The room feels inhabited |
-| **Exterior Golden Hour** | Low warm sun, long shadows, cool sky counter-key |
-| **Exterior Overcast** | Flat diffuse overcast. No hard shadows, clean surfaces. The architect's preferred light |
-| **Window Natural Minimal** | One window as the only source. Spatial clarity through restraint |
+| | Preset | Character |
+|:---:|---|---|
+| <img width="120" src="luxcore_stage_manager/previews/interior_day.png" alt="Interior Daylight"> | **Interior Daylight** | Sun + sky area + interior fill. Side window as the spatial anchor |
+| <img width="120" src="luxcore_stage_manager/previews/interior_night.png" alt="Interior Night Artificial"> | **Interior Night Artificial** | Warm pendants + cool accent. The room feels inhabited |
+| <img width="120" src="luxcore_stage_manager/previews/exterior_golden.png" alt="Exterior Golden Hour"> | **Exterior Golden Hour** | Low warm sun, long shadows, cool sky counter-key |
+| <img width="120" src="luxcore_stage_manager/previews/exterior_overcast.png" alt="Exterior Overcast"> | **Exterior Overcast** | Flat diffuse overcast. No hard shadows, clean surfaces. The architect's preferred light |
+| <img width="120" src="luxcore_stage_manager/previews/window_minimal.png" alt="Window Natural Minimal"> | **Window Natural Minimal** | One window as the only source. Spatial clarity through restraint |
 
 ### 🎨 Creative (4)
 Atmospheric and editorial setups for anything that doesn't want to look like a product shot.
 
-| Preset | Character |
-|---|---|
-| **Moody Drama** | Hard front-side spot with no fill. Deep shadows. The light has opinions |
-| **High Key Ethereal** | No visible shadows. Cold wrap softboxes. Exists somewhere between beauty and concept |
-| **Neon RGB Atmosphere** | Blue key, orange fill, cyan rim. Cyberpunk without apology |
-| **Candlelight Atmosphere** | Very warm point practicals + minimal bounce. The darkness matters as much as the light |
+| | Preset | Character |
+|:---:|---|---|
+| <img width="120" src="luxcore_stage_manager/previews/moody_drama.png" alt="Moody Drama"> | **Moody Drama** | Hard front-side spot with no fill. Deep shadows. The light has opinions |
+| <img width="120" src="luxcore_stage_manager/previews/high_key.png" alt="High Key Ethereal"> | **High Key Ethereal** | No visible shadows. Cold wrap softboxes. Exists somewhere between beauty and concept |
+| <img width="120" src="luxcore_stage_manager/previews/neon_rgb.png" alt="Neon RGB Atmosphere"> | **Neon RGB Atmosphere** | Blue key, orange fill, cyan rim. Cyberpunk without apology |
+| <img width="120" src="luxcore_stage_manager/previews/candlelight.png" alt="Candlelight Atmosphere"> | **Candlelight Atmosphere** | Very warm point practicals + minimal bounce. The darkness matters as much as the light |
 
 ---
 
