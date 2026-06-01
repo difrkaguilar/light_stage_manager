@@ -26,6 +26,67 @@ CAT_ICONS = CATEGORY_ICONS   # thin alias kept for any future local references
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Custom role-dot icons — solid coloured circles generated in memory
+# ---------------------------------------------------------------------------
+
+_role_pcoll = None
+
+_ROLE_DOT_COLORS = {
+    "key":  (1.00, 0.85, 0.00),   # yellow
+    "fill": (0.20, 0.55, 1.00),   # blue
+    "rim":  (0.15, 0.90, 0.45),   # green
+    "env":  (0.70, 0.30, 1.00),   # purple
+}
+
+
+def _build_circle_pixels(r, g, b, size=32):
+    cx = cy = size / 2.0
+    radius = size / 2.0 - 1.5
+    pixels = []
+    for y in range(size):
+        for x in range(size):
+            dx = x - cx + 0.5
+            dy = y - cy + 0.5
+            dist = (dx * dx + dy * dy) ** 0.5
+            if dist <= radius - 0.5:
+                a = 1.0
+            elif dist <= radius + 0.5:
+                a = radius + 0.5 - dist
+            else:
+                a = 0.0
+            pixels.extend([r, g, b, a])
+    return pixels
+
+
+def _init_role_icons():
+    global _role_pcoll
+    import bpy.utils.previews
+    if _role_pcoll is not None:
+        return
+    _role_pcoll = bpy.utils.previews.new()
+    size = 32
+    for role, (r, g, b) in _ROLE_DOT_COLORS.items():
+        thumb = _role_pcoll.new(role)
+        thumb.image_size = [size, size]
+        thumb.image_pixels_float = _build_circle_pixels(r, g, b, size)
+
+
+def _free_role_icons():
+    global _role_pcoll
+    if _role_pcoll is not None:
+        import bpy.utils.previews
+        bpy.utils.previews.remove(_role_pcoll)
+        _role_pcoll = None
+
+
+def _get_role_icon_id(role: str) -> int:
+    if _role_pcoll is None:
+        return 0
+    thumb = _role_pcoll.get(role)
+    return thumb.icon_id if thumb else 0
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -788,17 +849,12 @@ class LSM_PT_SceneLightsInline(bpy.types.Panel):
                     row.prop(obj, "hide_viewport",
                              text="", icon=vis_icon, emboss=False)
 
-                    # Role color dot — circle matching the viewport contour color.
-                    # COLORSET_*_VEC icons are filled circles (bone-group indicators),
-                    # never confusable with the diamond keyframe icons (KEYTYPE_*_VEC).
-                    _role_icons = {
-                        "key":  "COLORSET_08_VEC",   # yellow  — matches key overlay
-                        "fill": "COLORSET_12_VEC",   # blue    — matches fill overlay
-                        "rim":  "COLORSET_10_VEC",   # green   — matches rim overlay
-                        "env":  "COLORSET_16_VEC",   # purple  — matches env overlay
-                    }
-                    dot_icon = _role_icons.get(role, "COLORSET_01_VEC")
-                    row.label(text="", icon=dot_icon)
+                    # Role colour dot — solid circle generated from overlay colours
+                    icon_id = _get_role_icon_id(role)
+                    if icon_id:
+                        row.label(text="", icon_value=icon_id)
+                    else:
+                        row.label(text="", icon="COLORSET_01_VEC")
 
                     # Light name (shortened)
                     short_name = obj.name.replace(LSM_PREFIX, "", 1)
@@ -806,6 +862,9 @@ class LSM_PT_SceneLightsInline(bpy.types.Panel):
 
                     # Energy slider
                     row.prop(ld, "energy", text="", slider=False)
+
+                    # Color picker
+                    row.prop(ld, "color", text="")
 
                     # Solo button
                     solo_op = row.operator(
@@ -985,6 +1044,8 @@ PANELS = (
 
 
 def register():
+    _init_role_icons()
+
     for cls in PROPERTY_GROUPS:
         bpy.utils.register_class(cls)
     for cls in UILISTS:
@@ -1001,6 +1062,8 @@ def register():
 
 
 def unregister():
+    _free_role_icons()
+
     if _on_load_post in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load_post)
     if bpy.app.timers.is_registered(_deferred_init):
