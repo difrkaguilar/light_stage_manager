@@ -1,0 +1,10 @@
+# Distributable zips belong in GitHub Releases, not in the git tree
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store
+Thumbs.db
