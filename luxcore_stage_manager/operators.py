@@ -267,7 +267,7 @@ class LSM_OT_ResetModifiers(Operator):
         try:
             p = context.scene.lsm_props
             try:
-                prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+                from . import _addon_prefs; prefs = _addon_prefs()
             except Exception:
                 prefs = None
 

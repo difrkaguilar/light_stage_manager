@@ -9,7 +9,9 @@ LSM_COLLECTION_PREFIX = "LSM -- "
 # Versioning
 PRESET_SCHEMA_VERSION = 1
 ADDON_DATA_VERSION    = 1
-ADDON_ID              = "luxcore_stage_manager"
+ADDON_ID              = "light_stage_manager"   # base name — used for legacy install lookup
+# When installed as Blender Extension, the real addon id is bl_ext.user_default.<name>.
+# preferences.py resolves the correct id at runtime via _get_addon_id().
 
 # Supported render engines
 LUXCORE_ENGINE_ID = "LUXCORE"

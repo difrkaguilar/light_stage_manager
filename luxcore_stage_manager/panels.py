@@ -105,7 +105,7 @@ def _repopulate_items(props):
 def _apply_preference_defaults(props) -> None:
     """Populate scene properties from addon preferences when available."""
     try:
-        prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+        from . import _addon_prefs as _lsm_prefs_fn; prefs = _lsm_prefs_fn()
     except Exception:
         return
 
@@ -159,7 +159,7 @@ class LSM_SceneProperties(PropertyGroup):
         description="Global energy multiplier applied to all lights in the scene",
         default=1.0, min=0.01, max=20.0, soft_min=0.1, soft_max=5.0,
         step=10, precision=2,
-        update=lambda self, ctx: bpy.ops.lsm.live_update(),
+        update=_cb_live_update,
     )
     temperature_offset: FloatProperty(
         name="Temp Offset (K)",
@@ -170,7 +170,7 @@ class LSM_SceneProperties(PropertyGroup):
         ),
         default=0.0, min=-5000.0, max=5000.0, soft_min=-1500.0, soft_max=1500.0,
         step=100, precision=0,
-        update=lambda self, ctx: bpy.ops.lsm.live_update(),
+        update=_cb_live_update,
     )
 
     gel_preset: bpy.props.EnumProperty(
@@ -181,7 +181,7 @@ class LSM_SceneProperties(PropertyGroup):
         ),
         items=GEL_ENUM_ITEMS,
         default="none",
-        update=lambda self, ctx: bpy.ops.lsm.live_update(),
+        update=_cb_live_update,
     )
     clear_existing: BoolProperty(
         name="Clear Existing LSM Lights",
@@ -242,7 +242,7 @@ class LSM_SceneProperties(PropertyGroup):
         ),
         default=1.0, min=0.0, max=2.0, soft_min=0.0, soft_max=1.0,
         step=5, precision=2,
-        update=lambda self, ctx: bpy.ops.lsm.live_update(),
+        update=_cb_live_update,
     )
 
     show_overlay: bpy.props.BoolProperty(
@@ -252,8 +252,7 @@ class LSM_SceneProperties(PropertyGroup):
             "Key = yellow  ·  Fill = blue  ·  Rim = green  ·  Env = purple"
         ),
         default=True,
-        update=lambda self, ctx: ctx.scene.__setitem__(
-            "lsm_overlay_enabled", self.show_overlay),
+        update=_cb_overlay_toggle,
     )
 
 # ---------------------------------------------------------------------------
@@ -288,11 +287,25 @@ class LSM_UL_PresetList(UIList):
 # Engine indicator helper
 # ---------------------------------------------------------------------------
 
+
+def _cb_live_update(self, ctx):
+    """Named update callback — safe for type-hint evaluation (no bare `bpy` name)."""
+    import bpy as _bpy
+    try:
+        _bpy.ops.lsm.live_update()
+    except Exception:
+        pass
+
+def _cb_overlay_toggle(self, ctx):
+    """Named update callback for show_overlay."""
+    ctx.scene["lsm_overlay_enabled"] = self.show_overlay
+
+
 def _draw_engine_indicator(layout, context):
     engine = context.scene.render.engine
     prefs = None
     try:
-        prefs = bpy.context.preferences.addons["luxcore_stage_manager"].preferences
+        from . import _addon_prefs as _lsm_prefs_fn; prefs = _lsm_prefs_fn()
     except Exception:
         pass
 

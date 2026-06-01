@@ -11,6 +11,23 @@ from .constants import ADDON_ID, ADDON_DATA_VERSION
 
 log = logging.getLogger(__name__)
 
+
+def _get_addon_id() -> str:
+    """Return the correct AddonPreferences bl_idname for this installation.
+
+    - Legacy install (Edit > Preferences > Add-ons > Install):
+        __package__ == "luxcore_stage_manager"  →  bl_idname = "light_stage_manager"
+    - Extension install (Extensions browser):
+        __package__ == "bl_ext.user_default.light_stage_manager"
+        →  bl_idname = "bl_ext.user_default.light_stage_manager"
+
+    Using __package__ from the package root is the only reliable cross-version approach.
+    """
+    pkg = __package__ or ""
+    if pkg.startswith("bl_ext."):
+        return pkg          # e.g. "bl_ext.user_default.light_stage_manager"
+    return ADDON_ID         # legacy: "light_stage_manager"
+
 def _migrate_v0_to_v1(prefs):
     log.info("[LSM] Migration v0->v1: baseline OK.")
 
@@ -35,7 +52,7 @@ def run_migrations(prefs):
 
 class LSM_AddonPreferences(AddonPreferences):
     """Persistent per-user preferences for Light Stage Manager."""
-    bl_idname = ADDON_ID
+    bl_idname = _get_addon_id()
 
     data_version: IntProperty(name="Internal Data Version", default=0, min=0)
 

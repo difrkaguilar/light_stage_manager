@@ -32,6 +32,22 @@ _modules_loaded = False
 # ---------------------------------------------------------------------------
 
 @bpy.app.handlers.persistent
+
+def _addon_prefs():
+    """Get addon preferences regardless of install type (Extension or legacy)."""
+    import bpy
+    # Extension: bl_ext.user_default.light_stage_manager
+    # Legacy:    light_stage_manager (or luxcore_stage_manager)
+    for key in (
+        __package__,                             # bl_ext.user_default.light_stage_manager
+        "light_stage_manager",
+        "luxcore_stage_manager",
+    ):
+        if key and key in bpy.context.preferences.addons:
+            return bpy.context.preferences.addons[key].preferences
+    return None
+
+
 def _lsm_lxc_energy_sync(scene, depsgraph):
     """Sync LuxCore gain/color for LSM lights when energy or color changes directly."""
     if not scene or scene.render.engine != "LUXCORE":
@@ -65,7 +81,7 @@ def _deferred_migrations():
     """Deferred: bpy.context.preferences accessible via timer (not during register)."""
     import bpy
     try:
-        entry = bpy.context.preferences.addons.get("luxcore_stage_manager")
+        entry = bpy.context.preferences.addons.get(__package__) or bpy.context.preferences.addons.get("light_stage_manager") or bpy.context.preferences.addons.get("luxcore_stage_manager")
         if entry is not None:
             from .preferences import run_migrations
             run_migrations(entry.preferences)
