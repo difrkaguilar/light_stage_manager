@@ -90,7 +90,7 @@ def _draw_callback():
     try:
         import blf
         font_id    = 0
-        font_size  = 11
+        font_size  = 14
         has_blf    = True
     except ImportError:
         has_blf = False

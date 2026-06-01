@@ -807,9 +807,6 @@ class LSM_PT_SceneLightsInline(bpy.types.Panel):
                     # Energy slider
                     row.prop(ld, "energy", text="", slider=False)
 
-                    # Color swatch
-                    row.prop(ld, "color", text="")
-
                     # Solo button
                     solo_op = row.operator(
                         "lsm.solo_toggle" if (in_solo and not is_solo) else "lsm.solo_light",
