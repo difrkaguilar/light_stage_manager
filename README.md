@@ -166,11 +166,18 @@ Toggle the overlay with the eye icon in the **Scene Lights** panel header.
 The overlay also labels each light with its short name (text rendered with `blf`).
 
 ### Asset Browser integration
-All 34 presets are available directly from Blender's **Asset Browser** with full preview
-thumbnails and category filtering — no N-panel required.
+All 34 presets can be generated and saved as a persistent Blender asset library — browse,
+filter by category, and apply any preset directly from the **Asset Browser**, with no N-panel required.
+
+![Light Stage Manager — Asset Browser](light_stage_manager_asset_browser.png)
+
+*All 34 presets loaded in the Asset Browser with rendered thumbnails. Categories (Architecture,
+Cinematic, Creative, Portrait, Product) appear in the left sidebar. Selecting a preset shows
+its description and a one-click **Apply Preset** button in the right panel.*
 
 **One-time setup:**
 1. **Edit → Preferences → Add-ons → Light Stage Manager → Generate Asset Library**
+   — this generates `LSM_Assets.blend` with all presets as World assets and their preview thumbnails
 2. **Edit → Preferences → File Paths → Asset Libraries → `+`**
    - Name: `Light Stage Manager`
    - Path: `<addon_folder>/assets/`
