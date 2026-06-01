@@ -137,6 +137,7 @@ PRESETS = [
     {
         "id": "rembrandt",
         "name": "Rembrandt Classic",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "The most iconic portrait setup. "
@@ -146,6 +147,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.5, -2.0, 2.2),
                 "target": (0.0, 0.0, 0.85),
@@ -159,6 +161,7 @@ PRESETS = [
             },
             {
                 "name": "Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.2, -2.5, 1.0),
                 "target": (0.0, 0.0, 0.8),
@@ -172,6 +175,7 @@ PRESETS = [
             },
             {
                 "name": "Rim",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-0.5, 2.8, 2.5),
                 "target": (0.0, 0.0, 1.0),
@@ -191,6 +195,7 @@ PRESETS = [
     {
         "id": "butterfly",
         "name": "Butterfly / Paramount",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Classic Hollywood glamour setup. Front-above key "
@@ -199,6 +204,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, -2.5, 2.8),
                 "target": (0.0, 0.0, 0.9),
@@ -212,6 +218,7 @@ PRESETS = [
             },
             {
                 "name": "Fill_Reflector",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -1.5, -0.5),
                 "target": (0.0, 0.0, 0.6),
@@ -225,6 +232,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Left",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-2.0, 2.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -238,6 +246,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Right",
+                "role": "rim",
                 "type": "AREA",
                 "location": (2.0, 2.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -257,6 +266,7 @@ PRESETS = [
     {
         "id": "loop",
         "name": "Loop Lighting",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Loop lighting: key at 30-45° creates a small "
@@ -265,6 +275,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.0, -2.5, 1.8),
                 "target": (0.0, 0.0, 0.85),
@@ -278,6 +289,7 @@ PRESETS = [
             },
             {
                 "name": "Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-1.8, -2.2, 1.0),
                 "target": (0.0, 0.0, 0.8),
@@ -291,6 +303,7 @@ PRESETS = [
             },
             {
                 "name": "Hair",
+                "role": "rim",
                 "type": "SPOT",
                 "location": (0.0, 0.5, 3.0),
                 "target": (0.0, 0.0, 1.5),
@@ -309,6 +322,7 @@ PRESETS = [
     {
         "id": "split",
         "name": "Split Lighting",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Direct side key (90°): half face lit, half in shadow. "
@@ -317,6 +331,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (3.5, 0.0, 1.6),
                 "target": (0.0, 0.0, 0.85),
@@ -330,6 +345,7 @@ PRESETS = [
             },
             {
                 "name": "Rim",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-1.5, 2.5, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -349,6 +365,7 @@ PRESETS = [
     {
         "id": "clamshell",
         "name": "Clamshell Beauty",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Top key plus chin reflector fill. "
@@ -357,6 +374,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key_Top",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, -2.0, 2.5),
                 "target": (0.0, 0.0, 0.9),
@@ -370,6 +388,7 @@ PRESETS = [
             },
             {
                 "name": "Fill_Bottom",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -1.2, -0.3),
                 "target": (0.0, 0.0, 0.7),
@@ -383,6 +402,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Left",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-2.5, 1.5, 1.8),
                 "target": (0.0, 0.0, 1.0),
@@ -396,6 +416,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Right",
+                "role": "rim",
                 "type": "AREA",
                 "location": (2.5, 1.5, 1.8),
                 "target": (0.0, 0.0, 1.0),
@@ -415,6 +436,7 @@ PRESETS = [
     {
         "id": "broad",
         "name": "Broad Lighting",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Key illuminates the wider (camera-facing) side of the face. "
@@ -423,6 +445,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (-2.2, -1.8, 1.6),
                 "target": (0.0, 0.0, 0.85),
@@ -436,6 +459,7 @@ PRESETS = [
             },
             {
                 "name": "Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (2.0, -2.5, 1.2),
                 "target": (0.0, 0.0, 0.8),
@@ -449,6 +473,7 @@ PRESETS = [
             },
             {
                 "name": "Background",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 3.0, 0.0),
                 "target": (0.0, 5.0, 0.0),
@@ -468,6 +493,7 @@ PRESETS = [
     {
         "id": "short",
         "name": "Short Lighting",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Key illuminates the narrow (far) side of the face. "
@@ -476,6 +502,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.2, -1.8, 1.6),
                 "target": (0.0, 0.0, 0.85),
@@ -489,6 +516,7 @@ PRESETS = [
             },
             {
                 "name": "Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.0, -2.5, 1.2),
                 "target": (0.0, 0.0, 0.8),
@@ -502,6 +530,7 @@ PRESETS = [
             },
             {
                 "name": "Hair",
+                "role": "rim",
                 "type": "SPOT",
                 "location": (-0.5, 0.5, 3.2),
                 "target": (0.0, 0.0, 1.6),
@@ -520,6 +549,7 @@ PRESETS = [
     {
         "id": "film_noir",
         "name": "Film Noir",
+        "role": "fill",
         "category": "PORTRAIT",
         "description": (
             "Dramatic top-down single hard spot with low fill. "
@@ -528,6 +558,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Top_Spot",
+                "role": "key",
                 "type": "SPOT",
                 "location": (0.3, -0.5, 3.5),
                 "target": (0.0, 0.0, 0.9),
@@ -540,6 +571,7 @@ PRESETS = [
             },
             {
                 "name": "Ground_Bounce",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -0.5, -0.8),
                 "target": (0.0, 0.0, 0.5),
@@ -563,6 +595,7 @@ PRESETS = [
     {
         "id": "product_45",
         "name": "Product Classic 45°",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "The most widely used product photography setup. "
@@ -571,6 +604,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.0, -2.0, 2.0),
                 "target": (0.0, 0.0, 0.3),
@@ -584,6 +618,7 @@ PRESETS = [
             },
             {
                 "name": "Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.5, -1.5, 1.0),
                 "target": (0.0, 0.0, 0.3),
@@ -597,6 +632,7 @@ PRESETS = [
             },
             {
                 "name": "Backlight",
+                "role": "rim",
                 "type": "AREA",
                 "location": (0.0, 3.0, 1.5),
                 "target": (0.0, 0.0, 0.3),
@@ -616,6 +652,7 @@ PRESETS = [
     {
         "id": "clamshell_product",
         "name": "Product Clamshell",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Symmetric top and bottom for jewelry and cosmetics. "
@@ -624,6 +661,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Top",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -0.5, 2.5),
                 "target": (0.0, 0.0, 0.0),
@@ -637,6 +675,7 @@ PRESETS = [
             },
             {
                 "name": "Bottom",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -0.5, -2.0),
                 "target": (0.0, 0.0, 0.0),
@@ -650,6 +689,7 @@ PRESETS = [
             },
             {
                 "name": "Side_Left",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.5, -0.5, 0.5),
                 "target": (0.0, 0.0, 0.2),
@@ -663,6 +703,7 @@ PRESETS = [
             },
             {
                 "name": "Side_Right",
+                "role": "fill",
                 "type": "AREA",
                 "location": (2.5, -0.5, 0.5),
                 "target": (0.0, 0.0, 0.2),
@@ -682,6 +723,7 @@ PRESETS = [
     {
         "id": "tabletop_sweep",
         "name": "Tabletop Sweep",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Tabletop with seamless sweep background. "
@@ -690,6 +732,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Main_Softbox",
+                "role": "key",
                 "type": "AREA",
                 "location": (3.0, -1.0, 2.0),
                 "target": (0.0, 0.0, 0.2),
@@ -703,6 +746,7 @@ PRESETS = [
             },
             {
                 "name": "Fill_Bounce",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.8, -1.0, 1.5),
                 "target": (0.0, 0.0, 0.2),
@@ -716,6 +760,7 @@ PRESETS = [
             },
             {
                 "name": "Top_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 3.5),
                 "target": (0.0, 0.0, 0.0),
@@ -735,6 +780,7 @@ PRESETS = [
     {
         "id": "infinity_white",
         "name": "Infinity White",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "High-key with infinite white background. "
@@ -744,6 +790,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Top_Main",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, 0.0, 3.0),
                 "target": (0.0, 0.0, 0.0),
@@ -757,6 +804,7 @@ PRESETS = [
             },
             {
                 "name": "Front",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -3.0, 1.0),
                 "target": (0.0, 0.0, 0.2),
@@ -770,6 +818,7 @@ PRESETS = [
             },
             {
                 "name": "Back",
+                "role": "rim",
                 "type": "AREA",
                 "location": (0.0, 3.0, 1.0),
                 "target": (0.0, 0.0, 0.0),
@@ -783,6 +832,7 @@ PRESETS = [
             },
             {
                 "name": "Left",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-3.0, 0.0, 1.0),
                 "target": (0.0, 0.0, 0.2),
@@ -796,6 +846,7 @@ PRESETS = [
             },
             {
                 "name": "Right",
+                "role": "fill",
                 "type": "AREA",
                 "location": (3.0, 0.0, 1.0),
                 "target": (0.0, 0.0, 0.2),
@@ -815,6 +866,7 @@ PRESETS = [
     {
         "id": "backlit_product",
         "name": "Backlit / Translucent",
+        "role": "rim",
         "category": "PRODUCT",
         "description": (
             "Strong backlight for bottles, jars and translucent products. "
@@ -823,6 +875,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Back_Main",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, 3.5, 0.5),
                 "target": (0.0, 0.0, 0.3),
@@ -836,6 +889,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Left",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-2.5, 2.0, 1.0),
                 "target": (0.0, 0.0, 0.3),
@@ -849,6 +903,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Right",
+                "role": "rim",
                 "type": "AREA",
                 "location": (2.5, 2.0, 1.0),
                 "target": (0.0, 0.0, 0.3),
@@ -862,6 +917,7 @@ PRESETS = [
             },
             {
                 "name": "Front_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -3.0, 1.0),
                 "target": (0.0, 0.0, 0.3),
@@ -881,6 +937,7 @@ PRESETS = [
     {
         "id": "studio_3light",
         "name": "Studio Three-Point Pro",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Three professional softboxes: front-side key, "
@@ -890,6 +947,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key_Softbox",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.5, -2.5, 1.8),
                 "target": (0.0, 0.0, 0.25),
@@ -903,6 +961,7 @@ PRESETS = [
             },
             {
                 "name": "Fill_Softbox",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.0, -2.0, 1.2),
                 "target": (0.0, 0.0, 0.25),
@@ -916,6 +975,7 @@ PRESETS = [
             },
             {
                 "name": "Top_Accent",
+                "role": "rim",
                 "type": "AREA",
                 "location": (0.5, 0.0, 3.5),
                 "target": (0.0, 0.0, 0.0),
@@ -935,6 +995,7 @@ PRESETS = [
     {
         "id": "jewelry_sparkle",
         "name": "Jewelry Macro Sparkle",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Precision lighting for jewelry. "
@@ -944,6 +1005,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key_Top",
+                "role": "key",
                 "type": "SPOT",
                 "location": (0.0, -0.5, 1.5),
                 "target": (0.0, 0.0, 0.0),
@@ -956,6 +1018,7 @@ PRESETS = [
             },
             {
                 "name": "Accent_1",
+                "role": "rim",
                 "type": "SPOT",
                 "location": (0.8, -0.8, 1.2),
                 "target": (0.0, 0.0, 0.0),
@@ -968,6 +1031,7 @@ PRESETS = [
             },
             {
                 "name": "Accent_2",
+                "role": "rim",
                 "type": "SPOT",
                 "location": (-0.8, -0.8, 1.2),
                 "target": (0.0, 0.0, 0.0),
@@ -980,6 +1044,7 @@ PRESETS = [
             },
             {
                 "name": "Diffuse_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -2.0, 0.5),
                 "target": (0.0, 0.0, 0.0),
@@ -999,6 +1064,7 @@ PRESETS = [
     {
         "id": "cosmetic_gradient",
         "name": "Cosmetic Gradient Beauty",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Smooth gradient for cosmetics and perfumery. "
@@ -1008,6 +1074,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Wrap_Front",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -2.5, 1.0),
                 "target": (0.0, 0.0, 0.3),
@@ -1021,6 +1088,7 @@ PRESETS = [
             },
             {
                 "name": "Top_Soft",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -0.5, 2.8),
                 "target": (0.0, 0.0, 0.0),
@@ -1034,6 +1102,7 @@ PRESETS = [
             },
             {
                 "name": "Back_Glow",
+                "role": "rim",
                 "type": "AREA",
                 "location": (0.0, 2.5, 1.5),
                 "target": (0.0, 0.0, 0.3),
@@ -1057,6 +1126,7 @@ PRESETS = [
     {
         "id": "interior_day",
         "name": "Interior Daylight",
+        "role": "fill",
         "category": "ARCHITECTURE",
         "description": (
             "Natural daylight entering through a side window. "
@@ -1066,6 +1136,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Sun",
+                "role": "key",
                 "type": "SUN",
                 "location": (5.0, -3.0, 8.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1077,6 +1148,7 @@ PRESETS = [
             },
             {
                 "name": "Sky_Diffuse",
+                "role": "fill",
                 "type": "AREA",
                 "location": (4.0, 0.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1090,6 +1162,7 @@ PRESETS = [
             },
             {
                 "name": "Interior_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-4.0, 0.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1109,6 +1182,7 @@ PRESETS = [
     {
         "id": "interior_night",
         "name": "Interior Night Artificial",
+        "role": "fill",
         "category": "ARCHITECTURE",
         "description": (
             "Artificial night interior lighting. "
@@ -1118,6 +1192,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Pendant_1",
+                "role": "key",
                 "type": "POINT",
                 "location": (0.0, 0.0, 2.5),
                 "target": None,
@@ -1129,6 +1204,7 @@ PRESETS = [
             },
             {
                 "name": "Pendant_2",
+                "role": "key",
                 "type": "POINT",
                 "location": (-2.0, 1.5, 2.5),
                 "target": None,
@@ -1140,6 +1216,7 @@ PRESETS = [
             },
             {
                 "name": "Ambient_Warm",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 3.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1153,6 +1230,7 @@ PRESETS = [
             },
             {
                 "name": "Accent_Cold",
+                "role": "rim",
                 "type": "SPOT",
                 "location": (3.0, -2.0, 2.8),
                 "target": (1.5, 0.0, 0.0),
@@ -1171,6 +1249,7 @@ PRESETS = [
     {
         "id": "exterior_golden",
         "name": "Exterior Golden Hour",
+        "role": "fill",
         "category": "ARCHITECTURE",
         "description": (
             "Golden hour: low warm sun from the horizon. "
@@ -1180,6 +1259,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Sun_Golden",
+                "role": "key",
                 "type": "SUN",
                 "location": (8.0, -2.0, 1.5),
                 "target": (0.0, 0.0, 0.0),
@@ -1191,6 +1271,7 @@ PRESETS = [
             },
             {
                 "name": "Sky_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 8.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1210,6 +1291,7 @@ PRESETS = [
     {
         "id": "exterior_overcast",
         "name": "Exterior Overcast",
+        "role": "fill",
         "category": "ARCHITECTURE",
         "description": (
             "Overcast sky: diffuse light with no hard shadows. "
@@ -1218,6 +1300,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Sky_Dome",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 6.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1231,6 +1314,7 @@ PRESETS = [
             },
             {
                 "name": "Front_Ambient",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -6.0, 3.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1250,6 +1334,7 @@ PRESETS = [
     {
         "id": "window_minimal",
         "name": "Window Natural Minimal",
+        "role": "fill",
         "category": "ARCHITECTURE",
         "description": (
             "A single window as the only light source. "
@@ -1259,6 +1344,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Window",
+                "role": "fill",
                 "type": "AREA",
                 "location": (4.5, 0.0, 1.8),
                 "target": (0.0, 0.0, 1.0),
@@ -1272,6 +1358,7 @@ PRESETS = [
             },
             {
                 "name": "Ambient_Bounce",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 4.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1295,6 +1382,7 @@ PRESETS = [
     {
         "id": "moody_drama",
         "name": "Moody Drama",
+        "role": "fill",
         "category": "CREATIVE",
         "description": (
             "High dramatic contrast. Hard front-side key, "
@@ -1303,6 +1391,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key_Hard",
+                "role": "key",
                 "type": "SPOT",
                 "location": (3.0, -1.5, 2.8),
                 "target": (0.0, 0.0, 0.8),
@@ -1315,6 +1404,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Cold",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-2.0, 2.5, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1334,6 +1424,7 @@ PRESETS = [
     {
         "id": "high_key",
         "name": "High Key Ethereal",
+        "role": "key",
         "category": "CREATIVE",
         "description": (
             "No visible shadows, bright and ethereal light. "
@@ -1343,6 +1434,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Wrap_Front",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -3.0, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1356,6 +1448,7 @@ PRESETS = [
             },
             {
                 "name": "Wrap_Left",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-3.0, -1.0, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1369,6 +1462,7 @@ PRESETS = [
             },
             {
                 "name": "Wrap_Right",
+                "role": "fill",
                 "type": "AREA",
                 "location": (3.0, -1.0, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1382,6 +1476,7 @@ PRESETS = [
             },
             {
                 "name": "Top",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 3.5),
                 "target": (0.0, 0.0, 0.0),
@@ -1401,6 +1496,7 @@ PRESETS = [
     {
         "id": "neon_rgb",
         "name": "Neon RGB Atmosphere",
+        "role": "rim",
         "category": "CREATIVE",
         "description": (
             "RGB accent lights. Cool blue key, warm orange fill, "
@@ -1409,6 +1505,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Key_Blue",
+                "role": "key",
                 "type": "AREA",
                 "location": (2.0, -2.5, 1.8),
                 "target": (0.0, 0.0, 0.8),
@@ -1423,6 +1520,7 @@ PRESETS = [
             },
             {
                 "name": "Fill_Orange",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.0, -2.0, 1.0),
                 "target": (0.0, 0.0, 0.8),
@@ -1437,6 +1535,7 @@ PRESETS = [
             },
             {
                 "name": "Rim_Cyan",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-0.5, 3.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1451,6 +1550,7 @@ PRESETS = [
             },
             {
                 "name": "Ground_Purple",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, -1.0),
                 "target": (0.0, 0.0, 0.5),
@@ -1471,6 +1571,7 @@ PRESETS = [
     {
         "id": "candlelight",
         "name": "Candlelight Atmosphere",
+        "role": "key",
         "category": "CREATIVE",
         "description": (
             "Candlelight warmth. Point sources at very warm temperature "
@@ -1479,6 +1580,7 @@ PRESETS = [
         "lights": [
             {
                 "name": "Candle_Main",
+                "role": "key",
                 "type": "POINT",
                 "location": (0.5, -0.3, 0.2),
                 "target": None,
@@ -1491,6 +1593,7 @@ PRESETS = [
             },
             {
                 "name": "Candle_2",
+                "role": "key",
                 "type": "POINT",
                 "location": (-0.4, 0.5, 0.15),
                 "target": None,
@@ -1503,6 +1606,7 @@ PRESETS = [
             },
             {
                 "name": "Bounce_Warm",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, -2.0, 0.5),
                 "target": (0.0, 0.0, 0.5),
@@ -1526,6 +1630,7 @@ PRESETS = [
     {
         "id": "automotive_studio",
         "name": "Automotive Studio Rig",
+        "role": "fill",
         "category": "PRODUCT",
         "description": (
             "Professional car photography rig. "
@@ -1536,6 +1641,7 @@ PRESETS = [
             # Long vertical strip: specular streak along driver's side
             {
                 "name": "Strip_Left",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-4.5, 0.0, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1550,6 +1656,7 @@ PRESETS = [
             # Long vertical strip: specular streak along passenger side
             {
                 "name": "Strip_Right",
+                "role": "rim",
                 "type": "AREA",
                 "location": (4.5, 0.0, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1564,6 +1671,7 @@ PRESETS = [
             # Overhead softbox: top-plane fill, hood/roof gradients
             {
                 "name": "Overhead_Panel",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, -1.0, 5.5),
                 "target": (0.0, 0.0, 0.0),
@@ -1578,6 +1686,7 @@ PRESETS = [
             # Front key: grille, headlights, front fascia
             {
                 "name": "Front_Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (0.0, -5.0, 2.0),
                 "target": (0.0, 0.0, 0.5),
@@ -1592,6 +1701,7 @@ PRESETS = [
             # Ground fill: cyclorama floor bounce, undercar detail
             {
                 "name": "Ground_Fill",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, -1.5),
                 "target": (0.0, 0.0, 1.0),
@@ -1616,6 +1726,7 @@ PRESETS = [
     {
         "id": "cin_deakins_window",
         "name": "Deakins — Window Natural",
+        "role": "fill",
         "category": "CINEMATIC",
         "description": (
             "Roger Deakins interior style. "
@@ -1626,6 +1737,7 @@ PRESETS = [
             # Large window substitute: the sole motivated source
             {
                 "name": "Window_Key",
+                "role": "key",
                 "type": "AREA",
                 "location": (-3.5, -1.0, 1.8),
                 "target": (0.0, 0.0, 0.9),
@@ -1640,6 +1752,7 @@ PRESETS = [
             # Ceiling sky bounce: indirect fill from opposite side, very low ratio
             {
                 "name": "Sky_Bounce",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 4.5),
                 "target": (0.0, 0.0, 0.0),
@@ -1654,6 +1767,7 @@ PRESETS = [
             # Rear soft rim: separates subject from background, barely readable
             {
                 "name": "Rim_Soft",
+                "role": "rim",
                 "type": "AREA",
                 "location": (1.5, 3.0, 2.0),
                 "target": (0.0, 0.0, 1.0),
@@ -1674,6 +1788,7 @@ PRESETS = [
     {
         "id": "cin_wkw_amber_night",
         "name": "Wong Kar-wai — Amber Night",
+        "role": "fill",
         "category": "CINEMATIC",
         "description": (
             "Wong Kar-wai / Christopher Doyle palette. "
@@ -1685,6 +1800,7 @@ PRESETS = [
             # cycles_energy is higher because luxcore_gain has no Cycles equivalent
             {
                 "name": "Practical_Main",
+                "role": "key",
                 "type": "POINT",
                 "location": (0.8, -0.5, 0.9),
                 "target": None,
@@ -1699,6 +1815,7 @@ PRESETS = [
             # Neon strip behind subject: green-cyan, typical of WKW Hong Kong streets
             {
                 "name": "Neon_Back",
+                "role": "rim",
                 "type": "AREA",
                 "location": (0.0, 3.5, 1.2),
                 "target": (0.0, 0.0, 0.9),
@@ -1714,6 +1831,7 @@ PRESETS = [
             # Saturated wall bounce: deep red, as if reflecting off a red-painted wall
             {
                 "name": "Wall_Bounce",
+                "role": "fill",
                 "type": "AREA",
                 "location": (-2.5, 0.5, 1.5),
                 "target": (0.0, 0.0, 0.8),
@@ -1736,6 +1854,7 @@ PRESETS = [
     {
         "id": "cin_br2049",
         "name": "Blade Runner 2049",
+        "role": "fill",
         "category": "CINEMATIC",
         "description": (
             "Deakins / BR2049 palette. "
@@ -1746,6 +1865,7 @@ PRESETS = [
             # Overcast dystopian sky: cold blue, diffuse, dominant ambient
             {
                 "name": "Sky_Cold",
+                "role": "fill",
                 "type": "AREA",
                 "location": (0.0, 0.0, 5.0),
                 "target": (0.0, 0.0, 0.0),
@@ -1761,6 +1881,7 @@ PRESETS = [
             # Orange neon: the signature warm accent, punchy and narrow
             {
                 "name": "Neon_Orange",
+                "role": "rim",
                 "type": "AREA",
                 "location": (3.0, 1.5, 0.8),
                 "target": (0.0, 0.0, 0.5),
@@ -1776,6 +1897,7 @@ PRESETS = [
             # Electric blue rim: hard separation, reinforces the cold atmosphere
             {
                 "name": "Rim_Electric",
+                "role": "rim",
                 "type": "AREA",
                 "location": (-1.0, 3.0, 2.5),
                 "target": (0.0, 0.0, 1.2),
@@ -1800,47 +1922,61 @@ PRESETS = [
         "category": "CINEMATIC",
         "description": (
             "A24 available-light philosophy. "
-            "Low warm sun as sole motivated key, cool sky fill as contrast, "
-            "ground bounce for underside warmth. "
-            "No obvious rig. Relies on global illumination for cohesion."
+            "Low warm sun as sole motivated key (3200K, 16° elevation), "
+            "cool open-sky fill as contrast (8000K, diffuse), "
+            "ground bounce for underside warmth (3800K). "
+            "Sun dominates — sky and bounce are accents only. "
+            "Apply with BIDIR + 1000 samples for best results."
         ),
         "lights": [
+            # Sun: the motivated key — warm amber, low golden-hour angle
+            # SUN scales linearly (×scale), not quadratically — stays in control
             {
                 "name": "Sun_Late",
                 "type": "SUN",
+                "role": "key",
                 "location": (6.0, -2.0, 1.8),
                 "target": (0.0, 0.0, 0.0),
                 "energy": 3.2,
                 "kelvin": 3200,
-                "size": 0.08,
+                "size": 0.06,
                 "use_shadow": True,
                 "luxcore_gain": 1.0,
             },
+            # Sky fill: open shade — cool, diffuse, non-directional
+            # cycles_energy pins the value independent of scale² multiplication
+            # Must stay well below sun to preserve the warm directional quality
             {
                 "name": "Sky_Soft",
                 "type": "AREA",
+                "role": "fill",
                 "location": (0.0, -1.0, 7.0),
                 "target": (0.0, 0.0, 0.5),
-                "energy": 60.0,
-                "kelvin": 10000,
+                "energy": 2.5,
+                "cycles_energy": 2.5,
+                "kelvin": 8000,
                 "size": 8.0,
                 "size_y": 8.0,
                 "shape": "RECTANGLE",
                 "use_shadow": False,
-                "luxcore_gain": 1.0,
+                "luxcore_gain": 0.04,
             },
+            # Ground bounce: warm earth-reflected uplight
+            # Subtle — fills shadows from below, adds the golden warmth in undercuts
             {
                 "name": "Ground_Bounce",
                 "type": "AREA",
+                "role": "fill",
                 "location": (0.0, 0.0, -0.5),
                 "target": (0.0, 0.0, 1.5),
-                "energy": 25.0,
+                "energy": 1.5,
+                "cycles_energy": 1.5,
                 "kelvin": 3800,
                 "size": 5.0,
                 "size_y": 5.0,
                 "shape": "RECTANGLE",
                 "use_shadow": False,
-                "luxcore_gain": 1.0,
+                "luxcore_gain": 0.03,
             },
         ],
         "env_light": {"type": "sky2", "turbidity": 2.5, "gain": 0.015},

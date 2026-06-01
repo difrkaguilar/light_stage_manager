@@ -5,7 +5,7 @@
 bl_info = {
     "name":        "Light Stage Manager",
     "author":      "difrkaguilar + Claude",
-    "version":     (3, 5, 0),
+    "version":     (3, 5, 1),
     "blender":     (4, 1, 0),
     "location":    "3D Viewport > N-panel > LightStageManager  |  Asset Browser",
     "description": "34 cinematic lighting presets for LuxCore, Cycles and EEVEE. Asset Browser ready.",
