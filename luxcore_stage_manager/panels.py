@@ -788,14 +788,16 @@ class LSM_PT_SceneLightsInline(bpy.types.Panel):
                     row.prop(obj, "hide_viewport",
                              text="", icon=vis_icon, emboss=False)
 
-                    # Role color dot — maps to the overlay contour color
+                    # Role color dot — circle matching the viewport contour color.
+                    # COLORSET_*_VEC icons are filled circles (bone-group indicators),
+                    # never confusable with the diamond keyframe icons (KEYTYPE_*_VEC).
                     _role_icons = {
-                        "key":  "KEYTYPE_JITTER_VEC",     # yellow-ish
-                        "fill": "KEYTYPE_BREAKDOWN_VEC",  # blue-ish
-                        "rim":  "KEYTYPE_MOVING_HOLD_VEC",# green-ish
-                        "env":  "KEYTYPE_EXTREME_VEC",    # purple-ish
+                        "key":  "COLORSET_08_VEC",   # yellow  — matches key overlay
+                        "fill": "COLORSET_12_VEC",   # blue    — matches fill overlay
+                        "rim":  "COLORSET_10_VEC",   # green   — matches rim overlay
+                        "env":  "COLORSET_16_VEC",   # purple  — matches env overlay
                     }
-                    dot_icon = _role_icons.get(role, "KEYTYPE_KEYFRAME_VEC")
+                    dot_icon = _role_icons.get(role, "COLORSET_01_VEC")
                     row.label(text="", icon=dot_icon)
 
                     # Light name (shortened)

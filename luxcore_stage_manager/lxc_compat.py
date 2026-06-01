@@ -166,35 +166,36 @@ def apply_lxc_object_visibility(obj, visible_to_camera: bool = False) -> None:
 def set_lxc_light_ray_visibility(light_obj,
                                   diffuse:  bool = True,
                                   specular: bool = True) -> None:
-    """Toggle LuxCore indirect diffuse / specular ray visibility for a light.
+    """Toggle LuxCore indirect diffuse / specular contribution for a light.
 
-    BlendLuxCore 2.10 exposes these per-light under:
-        obj.luxcore.visibility.indirect_diffuse_enable
-        obj.luxcore.visibility.indirect_specular_enable
-
-    Older BLC may use flat flags; we try both layouts defensively.
+    In BlendLuxCore 2.9+ the diffuse/specular flags live on the LIGHT DATA's
+    luxcore property group (light_data.luxcore), NOT on the object's visibility
+    group (light_obj.luxcore.visibility, which is for mesh objects).
 
     Args:
         light_obj:  bpy.types.Object of type LIGHT.
         diffuse:    Whether the light contributes to diffuse bounces.
         specular:   Whether the light contributes to specular bounces.
     """
-    lx_obj = getattr(light_obj, "luxcore", None)
-    if lx_obj is None:
-        return
+    # Primary path: light DATA's luxcore props (BlendLuxCore 2.9+)
+    lx_ld = getattr(light_obj.data, "luxcore", None)
+    if lx_ld is not None:
+        _try_set(lx_ld, "indirect_diffuse_enable",   diffuse)
+        _try_set(lx_ld, "indirect_specular_enable",  specular)
+        # Some BLC builds use visibility_ prefix on the light data
+        _try_set(lx_ld, "visible_indirect_diffuse",  diffuse)
+        _try_set(lx_ld, "visible_indirect_specular", specular)
 
-    vis = getattr(lx_obj, "visibility", None)
-    if vis is not None:
-        # BLC 2.10 nested visibility group
-        _try_set(vis, "indirect_diffuse_enable",  diffuse)
-        _try_set(vis, "indirect_specular_enable", specular)
-        # Some builds use shorter names
-        _try_set(vis, "diffuse",  diffuse)
-        _try_set(vis, "specular", specular)
-    else:
-        # Older BLC flat layout
-        _try_set(lx_obj, "indirect_diffuse_enable",  diffuse)
-        _try_set(lx_obj, "indirect_specular_enable", specular)
+    # Fallback: older BLC stored flags on the object's luxcore group
+    lx_obj = getattr(light_obj, "luxcore", None)
+    if lx_obj is not None:
+        vis = getattr(lx_obj, "visibility", None)
+        if vis is not None:
+            _try_set(vis, "indirect_diffuse_enable",  diffuse)
+            _try_set(vis, "indirect_specular_enable", specular)
+        else:
+            _try_set(lx_obj, "indirect_diffuse_enable",  diffuse)
+            _try_set(lx_obj, "indirect_specular_enable", specular)
 
 
 # ---------------------------------------------------------------------------

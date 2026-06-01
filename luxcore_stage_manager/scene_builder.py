@@ -587,34 +587,43 @@ def apply_live_adjustments(scene,
 
         ld.color = tuple(base_color)
 
-        # --- LuxCore energy + color sync (minimal — avoids texture leak) ---
-        # LuxCore uses luxcore.gain for energy in artistic mode — ld.energy is ignored.
-        # We update ONLY gain and rgb_gain directly to avoid triggering a full
-        # material redefinition (which creates new ConstFloatTexture3 objects each call).
+        # --- LuxCore energy + color sync ---
+        # LuxCore ignores ld.energy and ld.color in "artistic" unit mode.
+        # We must push the values to lx.gain, lx.temperature, and lx.rgb_gain.
         try:
-            from .lxc_compat import is_active_engine, _try_set, _try_get
+            from .lxc_compat import is_active_engine, _try_set
             from .constants import (LXC_AREA_GAIN_SCALE, LXC_SPOT_GAIN_SCALE,
-                                    LXC_POINT_GAIN_SCALE, LXC_SUN_GAIN_SCALE)
+                                    LXC_POINT_GAIN_SCALE, LXC_SUN_GAIN_SCALE,
+                                    KELVIN_LXC_MAX)
             if is_active_engine(scene):
                 lx = getattr(ld, "luxcore", None)
                 if lx is not None:
-                    # Gain: energy × gain_scale × luxcore_gain_from_descriptor
-                    _gain_scales = {
+                    # ---- Gain ----
+                    _gs_map = {
                         "AREA":  LXC_AREA_GAIN_SCALE,
                         "SPOT":  LXC_SPOT_GAIN_SCALE,
                         "POINT": LXC_POINT_GAIN_SCALE,
                         "SUN":   LXC_SUN_GAIN_SCALE,
                     }
-                    gs = _gain_scales.get(ld.type, LXC_AREA_GAIN_SCALE)
+                    gs = _gs_map.get(ld.type, LXC_AREA_GAIN_SCALE)
                     lxc_gain_val = base_energy * gs * float(obj.get("lsm_luxcore_gain", 1.0))
                     _try_set(lx, "gain", lxc_gain_val)
 
-                    # Color: only update rgb_gain if color actually differs from
-                    # the Blender native color already set above.  This avoids
-                    # creating a new LuxCore texture when only energy changed.
-                    cur_mode = _try_get(lx, "color_mode", "color")
-                    if cur_mode == "color":
-                        _try_set(lx, "rgb_gain", tuple(base_color))
+                    # ---- Color / Temperature ----
+                    if stored_k > 0:
+                        # Kelvin source: update LuxCore temperature (not just ld.color)
+                        lxc_k = max(float(KELVIN_MIN),
+                                    min(float(KELVIN_LXC_MAX),
+                                        stored_k + float(temp_offset)))
+                        _try_set(lx, "temperature",           float(lxc_k))
+                        _try_set(lx, "color_temperature",     int(lxc_k))
+                        _try_set(lx, "color_mode",            "temperature")
+                        _try_set(lx, "use_color_temperature", True)
+                    else:
+                        # RGB source: sync Blender color → LuxCore rgb_gain
+                        _try_set(lx, "rgb_gain",              tuple(base_color))
+                        _try_set(lx, "color_mode",            "color")
+                        _try_set(lx, "use_color_temperature", False)
         except Exception:
             pass
 

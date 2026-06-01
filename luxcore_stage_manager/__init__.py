@@ -19,8 +19,46 @@ bl_info = {
 # backwards compatibility with Blender 4.1 and older addon installers.
 
 import logging
+import bpy
+
 log = logging.getLogger(__name__)
 _modules_loaded = False
+
+
+# ---------------------------------------------------------------------------
+# LuxCore per-light energy sync
+# Fires when any Light data changes (e.g. per-light energy slider in Scene
+# Lights panel), keeping lx.gain in sync with ld.energy for LSM lights.
+# ---------------------------------------------------------------------------
+
+@bpy.app.handlers.persistent
+def _lsm_lxc_energy_sync(scene, depsgraph):
+    """Sync LuxCore gain/color for LSM lights when energy or color changes directly."""
+    if not scene or scene.render.engine != "LUXCORE":
+        return
+    if not any(isinstance(upd.id, bpy.types.Light) for upd in depsgraph.updates):
+        return
+    try:
+        from .constants import (LSM_PREFIX,
+                                LXC_AREA_GAIN_SCALE, LXC_SPOT_GAIN_SCALE,
+                                LXC_POINT_GAIN_SCALE, LXC_SUN_GAIN_SCALE)
+        from .lxc_compat import _try_set
+        _gs = {"AREA":  LXC_AREA_GAIN_SCALE, "SPOT":  LXC_SPOT_GAIN_SCALE,
+               "SUN":   LXC_SUN_GAIN_SCALE,  "POINT": LXC_POINT_GAIN_SCALE}
+        for obj in scene.objects:
+            if not (obj.name.startswith(LSM_PREFIX) and obj.type == "LIGHT"):
+                continue
+            ld = obj.data
+            lx = getattr(ld, "luxcore", None)
+            if lx is None:
+                continue
+            gs = _gs.get(ld.type, LXC_AREA_GAIN_SCALE)
+            _try_set(lx, "gain", ld.energy * gs * float(obj.get("lsm_luxcore_gain", 1.0)))
+            # RGB-sourced lights: sync color swatch → lx.rgb_gain
+            if float(obj.get("lsm_kelvin", -1.0)) <= 0:
+                _try_set(lx, "rgb_gain", tuple(float(c) for c in ld.color[:3]))
+    except Exception as exc:
+        log.debug("[LSM] LXC energy sync: %s", exc)
 
 
 def _deferred_migrations():
@@ -38,7 +76,6 @@ def _deferred_migrations():
 
 def register():
     global _modules_loaded
-    import bpy
     from . import preferences, operators, panels
     from .preferences import LSM_AddonPreferences
     from .overlay import register_overlay
@@ -50,6 +87,9 @@ def register():
 
     bpy.app.timers.register(_deferred_migrations, first_interval=0.0)
 
+    if _lsm_lxc_energy_sync not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(_lsm_lxc_energy_sync)
+
     _modules_loaded = True
     print("[Light Stage Manager] v3.5.0 registered"
           " — 34 presets, LuxCore + Cycles, 20 gels, Blender 4.1+, Asset Browser ready")
@@ -59,13 +99,15 @@ def unregister():
     global _modules_loaded
     if not _modules_loaded:
         return
-    import bpy
     from . import operators, panels
     from .preferences import LSM_AddonPreferences
     from .overlay import unregister_overlay
 
     if bpy.app.timers.is_registered(_deferred_migrations):
         bpy.app.timers.unregister(_deferred_migrations)
+
+    if _lsm_lxc_energy_sync in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(_lsm_lxc_energy_sync)
 
     unregister_overlay()
     panels.unregister()
